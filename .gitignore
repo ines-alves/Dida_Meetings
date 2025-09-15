@@ -1,7 +1,8 @@
-.DS_Store
+*.DS_Store
 *.jar
 *.class
-*.proto
 *.properties
 *.lst
 *.exe
+
+**/target/

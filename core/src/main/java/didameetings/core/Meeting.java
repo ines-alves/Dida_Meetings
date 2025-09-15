@@ -24,7 +24,7 @@ public class Meeting {
     }
 
     public int getId () {
-	return this.max;
+	return this.id;
     }
 
     public boolean add (Integer id) {
