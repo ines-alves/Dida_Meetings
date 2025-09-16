@@ -53,10 +53,9 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
 
 	int request_id   = request.getReqid();
 	this.server_state.setDebugMode(request.getMode());
-	
 	if(this.server_state.getDebugMode() == 2){
 	    System.out.println("===============================");
-	    System.out.println("inside unfreez");
+	    System.out.println("inside unfreeze");
 	    System.out.println("===============================");
 	    try {
 		synchronized(this.server_state.main_loop) {
@@ -72,6 +71,16 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
 		}
 	    } catch (Exception e) {
 	    }
+	}
+	if (this.server_state.getDebugMode() == 4) {
+	    System.out.println("===============================");
+	    System.out.println("SLOW MODE ON - DELAYS ENABLED");
+	    System.out.println("===============================");
+	}
+	if (this.server_state.getDebugMode() == 5) {
+	    System.out.println("===============================");
+	    System.out.println("SLOW MODE OFF - DELAYS DISABLED");
+	    System.out.println("===============================");
 	}
 
 	// for debug purposes

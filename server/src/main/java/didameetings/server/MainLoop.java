@@ -34,6 +34,7 @@ public class MainLoop implements Runnable  {
     public  void run() {
 		while (true) {
 			checkCrash();
+			checkDelay();
 			while(this.server_state.getDebugMode() == 1){
 				System.out.println("===============================");
 				System.out.println("INSIDE DEBUG MODE 1 AKA FREEZE");
@@ -56,6 +57,24 @@ public class MainLoop implements Runnable  {
 	notify();    
     }
 
+	private long randomDelay() {
+		Random random = new Random();
+		return random.nextInt(3000); // Sleep for a random duration up to 3 seconds
+	}
+
+	public void checkDelay() {
+		if (this.server_state.getDebugMode() == 4) {
+			System.out.println("====================================");
+			System.out.println("SLOW MODE ON: APPLYING RANDOM DELAY");
+			System.out.println("====================================");
+			try {
+				Thread.sleep(randomDelay()); // Sleep for a random duration
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt(); // Restore interrupt flag
+			}
+		}
+	}
+
     public void checkCrash() {
 		if (this.server_state.getDebugMode() == 3) {
 			System.out.println("====================================");
@@ -66,6 +85,7 @@ public class MainLoop implements Runnable  {
     }
 
     public synchronized void processEntry(int entry_number) {
+	checkDelay();
 	PaxosInstance next_entry = this.server_state.paxos_log.testAndSetEntry(entry_number);
 
 	while (next_entry.decided == false) {
