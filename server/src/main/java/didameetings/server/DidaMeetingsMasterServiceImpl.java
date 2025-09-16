@@ -52,8 +52,11 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
 	boolean response_value = true;
 
 	int request_id   = request.getReqid();
-	this.server_state.setDebugMode (request.getMode());
+	this.server_state.setDebugMode(request.getMode());
 	if(this.server_state.getDebugMode() == 2){
+		System.out.println("===============================");
+		System.out.println("inside unfreez");
+		System.out.println("===============================");
 		try {
 			notifyAll();
 			

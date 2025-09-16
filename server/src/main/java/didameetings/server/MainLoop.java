@@ -36,14 +36,19 @@ public class MainLoop implements Runnable  {
 	this.next_log_entry = -1;
     }
 
-    public void run() {
+    public  void run() {
 		while (true) {
 			while(this.server_state.getDebugMode() == 1){
-		
+				System.out.println("===============================");
+				System.out.println("INSIDE DEBUG MODE 1 AKA FREEZE");
+				System.out.println("===============================");
 				try {
-					wait();
-				} catch (InterruptedException e) {
-				}
+                synchronized (this) {
+                    wait(); // must hold monitor of `this`
+                }
+            	} catch (InterruptedException e) {
+                	Thread.currentThread().interrupt(); // restore interrupt flag
+            	}
 			}
 			this.next_log_entry++;
 			this.processEntry(this.next_log_entry);
