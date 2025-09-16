@@ -37,10 +37,17 @@ public class MainLoop implements Runnable  {
     }
 
     public void run() {
-	while (true) {
-	    this.next_log_entry++;
-	    this.processEntry(this.next_log_entry);
-	}
+		while (true) {
+			while(this.server_state.getDebugMode() == 1){
+		
+				try {
+					wait();
+				} catch (InterruptedException e) {
+				}
+			}
+			this.next_log_entry++;
+			this.processEntry(this.next_log_entry);
+		}
     }
       
     public synchronized void wakeup() {
@@ -50,7 +57,6 @@ public class MainLoop implements Runnable  {
    
  
     public synchronized void processEntry(int entry_number) {
-		
 	PaxosInstance next_entry = this.server_state.paxos_log.testAndSetEntry(entry_number);
 
 	while (next_entry.decided == false) {

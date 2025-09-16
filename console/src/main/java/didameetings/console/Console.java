@@ -1,6 +1,5 @@
 package didameetings.console;
 
-
 import java.util.*;
 
 import didameetings.DidaMeetingsMaster;
@@ -9,7 +8,6 @@ import didameetings.DidaMeetingsMasterServiceGrpc;
 import didameetings.configs.*;
 
 import didameetings.util.*;
-
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 
@@ -161,7 +159,26 @@ public class Console {
 		    System.out.println("debug " + parameter1 + " " + parameter2);
                     if ((parameter1 != null) && (parameter2 != null)) {
 			try {
-			    mode  =  Integer.parseInt(parameter1);
+			
+			    switch (parameter1) {
+					case "freeze":
+					    mode = 1;
+					    break;
+					case "unfreeze":
+					    mode = 2;
+					    break;
+					case "crash":
+					    mode = 3;
+					    break;
+					case "slow-mode-on":
+					    mode = 4;
+					    break;
+					case "slow-mode-off":
+					    mode = 5;
+					    break;
+					default:
+						mode = 0;
+				}
 			    replica =  Integer.parseInt(parameter2);
 			    System.out.println("setting debug with mode " + mode + " on replica " + replica);
 

@@ -2,7 +2,6 @@ package didameetings.server;
 
 import didameetings.DidaMeetingsMaster;
 import didameetings.DidaMeetingsMasterServiceGrpc;
-
 import io.grpc.stub.StreamObserver;
 
 public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc.DidaMeetingsMasterServiceImplBase {
@@ -54,6 +53,13 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
 
 	int request_id   = request.getReqid();
 	this.server_state.setDebugMode (request.getMode());
+	if(this.server_state.getDebugMode() == 2){
+		try {
+			notifyAll();
+			
+		} catch (Exception e) {
+		}
+	}
 
 	// for debug purposes
 	System.out.println("Setting debug mode to = " + this.server_state.getDebugMode());
