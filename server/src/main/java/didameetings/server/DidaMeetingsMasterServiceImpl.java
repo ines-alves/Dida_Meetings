@@ -53,16 +53,19 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
 
 	int request_id   = request.getReqid();
 	this.server_state.setDebugMode(request.getMode());
+	
 	if(this.server_state.getDebugMode() == 2){
-		System.out.println("===============================");
-		System.out.println("inside unfreez");
-		System.out.println("===============================");
-		try {
-			notifyAll();
-			
-		} catch (Exception e) {
+	    System.out.println("===============================");
+	    System.out.println("inside unfreez");
+	    System.out.println("===============================");
+	    try {
+		synchronized(this.server_state.main_loop) {
+		    this.server_state.main_loop.wakeup ();
 		}
+	    } catch (Exception e) {
+	    }
 	}
+	
 
 	// for debug purposes
 	System.out.println("Setting debug mode to = " + this.server_state.getDebugMode());

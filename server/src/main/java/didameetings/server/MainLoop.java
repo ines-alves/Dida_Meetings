@@ -1,21 +1,15 @@
 package didameetings.server;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
-import didameetings.DidaMeetingsMain;
 import didameetings.DidaMeetingsPaxos;
 import didameetings.DidaMeetingsPaxosServiceGrpc;
-
-import didameetings.util.GenericResponseCollector;
 import didameetings.util.CollectorStreamObserver;
+import didameetings.util.GenericResponseCollector;
 import didameetings.util.PhaseOneBogusProcessor;
-// import didameetings.util.PhaseOneResponseProcessor;
 import didameetings.util.PhaseTwoResponseProcessor;
-
-import didameetings.configs.ConfigurationScheduler;
-
 import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 
 
 public class MainLoop implements Runnable  {
@@ -162,7 +156,7 @@ public class MainLoop implements Runnable  {
 	    if (next_entry.decided == false) {
 		System.out.println("Entry not decided: waiting");
 		this.has_work = false;
-		while (this.has_work == false) {
+		while (this.has_work == false || (this.server_state.getDebugMode() == 1))  {
 		    try {
 			wait ();
 		    }
@@ -177,7 +171,7 @@ public class MainLoop implements Runnable  {
 	System.out.println("Log entry with number " + this.next_log_entry + " has been decided with command id = "+ next_entry.command_id);
 	RequestRecord request_record = this.server_state.req_history.getIfPending(next_entry.command_id);
 	// if I receive the paxos decision before the request
-	while (request_record == null) {
+	while (request_record == null || (this.server_state.getDebugMode() == 1))  {
 	    System.out.println("Record not available!");
 	    try {
 		wait ();
