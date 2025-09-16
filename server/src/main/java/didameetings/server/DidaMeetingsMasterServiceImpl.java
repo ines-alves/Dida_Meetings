@@ -65,7 +65,14 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
 	    } catch (Exception e) {
 	    }
 	}
-	
+	if (this.server_state.getDebugMode() == 3) { //FIXME BOTH IFS ARE THE SAME MAYBE NOT NEEDED
+		try {
+		synchronized(this.server_state.main_loop) {
+		    this.server_state.main_loop.wakeup ();
+		}
+	    } catch (Exception e) {
+	    }
+	}
 
 	// for debug purposes
 	System.out.println("Setting debug mode to = " + this.server_state.getDebugMode());

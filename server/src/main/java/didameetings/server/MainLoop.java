@@ -2,6 +2,7 @@ package didameetings.server;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import didameetings.DidaMeetingsPaxos;
 import didameetings.DidaMeetingsPaxosServiceGrpc;
@@ -32,6 +33,7 @@ public class MainLoop implements Runnable  {
 
     public  void run() {
 		while (true) {
+			checkCrash();
 			while(this.server_state.getDebugMode() == 1){
 				System.out.println("===============================");
 				System.out.println("INSIDE DEBUG MODE 1 AKA FREEZE");
@@ -53,8 +55,16 @@ public class MainLoop implements Runnable  {
 	this.has_work = true;
 	notify();    
     }
-   
- 
+
+    public void checkCrash() {
+		if (this.server_state.getDebugMode() == 3) {
+			System.out.println("====================================");
+			System.out.println("I WILL CRASH NOW BYE BYE, GOOD LUCK!");
+			System.out.println("====================================");
+			System.exit(1);
+		}
+    }
+
     public synchronized void processEntry(int entry_number) {
 	PaxosInstance next_entry = this.server_state.paxos_log.testAndSetEntry(entry_number);
 
@@ -158,6 +168,7 @@ public class MainLoop implements Runnable  {
 		this.has_work = false;
 		while (this.has_work == false || (this.server_state.getDebugMode() == 1))  {
 		    try {
+			checkCrash();
 			wait ();
 		    }
 		    catch (InterruptedException e) {
@@ -174,6 +185,7 @@ public class MainLoop implements Runnable  {
 	while (request_record == null || (this.server_state.getDebugMode() == 1))  {
 	    System.out.println("Record not available!");
 	    try {
+		checkCrash();
 		wait ();
 	    }
 	    catch (InterruptedException e) {
