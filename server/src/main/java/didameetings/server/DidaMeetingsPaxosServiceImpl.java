@@ -29,12 +29,12 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
         int instance = request.getInstance();
         int ballot = request.getRequestballot();
         PaxosInstance entry = this.server_state.paxos_log.testAndSetEntry(instance, ballot);
-        boolean accepted = false;
+        boolean promised = false;
         int value = entry.command_id;
         int valballot = entry.write_ballot;
 
         if (ballot >= this.server_state.getCurrentBallot()) {
-            accepted = true;
+            promised = true;
             this.server_state.setCurrentBallot(ballot);
             entry.read_ballot = ballot;
         }
@@ -46,7 +46,7 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
         response_builder.setInstance(instance);
         response_builder.setServerid(this.server_state.my_id);
         response_builder.setRequestballot(ballot);
-        response_builder.setAccepted(accepted);
+        response_builder.setPromised(promised);
         response_builder.setValue(value);
         response_builder.setValballot(valballot);
         response_builder.setMaxballot(maxballot);
