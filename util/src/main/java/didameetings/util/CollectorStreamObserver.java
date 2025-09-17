@@ -15,8 +15,6 @@ public class CollectorStreamObserver<T> implements StreamObserver<T> {
     @Override
     public void onNext(T value) {
         // Handle the received response of type T
-        System.err.println("--------------");
-         System.out.println("Received response: " + value);
         if (this.done == false) {
             collector.addResponse(value);
             this.done = true;

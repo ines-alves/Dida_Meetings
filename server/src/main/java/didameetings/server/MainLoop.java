@@ -124,7 +124,6 @@ public class MainLoop implements Runnable {
                 GenericResponseCollector<DidaMeetingsPaxos.PhaseOneReply> phase_one_collector = new GenericResponseCollector<DidaMeetingsPaxos.PhaseOneReply>(phase_one_responses, n_acceptors, phase_one_processor);
 
                 for (int i = 0; i < n_acceptors; i++) {
-                    System.out.println("num acceptors:" + acceptors.size());
                     CollectorStreamObserver<DidaMeetingsPaxos.PhaseOneReply> phase_one_observer = new CollectorStreamObserver<DidaMeetingsPaxos.PhaseOneReply>(phase_one_collector);
                     this.server_state.async_stubs[acceptors.get(i)].phaseone(phase_one_request, phase_one_observer);
                 }

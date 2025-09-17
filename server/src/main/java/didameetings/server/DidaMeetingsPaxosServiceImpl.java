@@ -24,7 +24,7 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
 
     @Override
     public void phaseone(DidaMeetingsPaxos.PhaseOneRequest request, StreamObserver<DidaMeetingsPaxos.PhaseOneReply> responseObserver) {
-        // System.out.println("Receive phase1 request: \n" + request);
+        System.out.println("Receive phase1 request: \n" + request);
 
         int instance = request.getInstance();
         int ballot = request.getRequestballot();
