@@ -5,93 +5,93 @@ import didameetings.DidaMeetingsMasterServiceGrpc;
 import io.grpc.stub.StreamObserver;
 
 public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc.DidaMeetingsMasterServiceImplBase {
+
     DidaMeetingsServerState server_state;
 
     public DidaMeetingsMasterServiceImpl(DidaMeetingsServerState state) {
-	this.server_state = state;
+        this.server_state = state;
     }
 
     @Override
     public void newballot(DidaMeetingsMaster.NewBallotRequest request, StreamObserver<DidaMeetingsMaster.NewBallotReply> responseObserver) {
-	System.out.println(request);
+        System.out.println(request);
 
-	int request_id       = request.getReqid();
-	int new_ballot       = request.getNewballot();
-	int completed_ballot = request.getCompletedballot();;
+        int request_id = request.getReqid();
+        int new_ballot = request.getNewballot();
+        int completed_ballot = request.getCompletedballot();;
 
-	// for debug purposes
-	System.out.println("Current ballot = " + this.server_state.getCurrentBallot() + " new ballot = " + new_ballot + " completed ballot = " + completed_ballot);
+        // for debug purposes
+        System.out.println("Current ballot = " + this.server_state.getCurrentBallot() + " new ballot = " + new_ballot + " completed ballot = " + completed_ballot);
 
-	this.server_state.setCompletedBallot (completed_ballot);
-	
-	if (new_ballot > this.server_state.getCurrentBallot()) {
-	    this.server_state.setCurrentBallot (new_ballot);
+        this.server_state.setCompletedBallot(completed_ballot);
 
-	    this.server_state.main_loop.wakeup();
+        if (new_ballot > this.server_state.getCurrentBallot()) {
+            this.server_state.setCurrentBallot(new_ballot);
 
-	    completed_ballot = this.server_state.waitForCompletedBallot(new_ballot);
-	}
-	else {
-	    completed_ballot = this.server_state.getCompletedBallot();
-	}
-	
-	DidaMeetingsMaster.NewBallotReply.Builder response_builder = DidaMeetingsMaster.NewBallotReply.newBuilder();
-	response_builder.setReqid(request_id);
-	response_builder.setCompletedballot(completed_ballot);
+            this.server_state.main_loop.wakeup();
 
-	DidaMeetingsMaster.NewBallotReply response = response_builder.build();
-	responseObserver.onNext(response);
-       	responseObserver.onCompleted();
+            completed_ballot = this.server_state.waitForCompletedBallot(new_ballot);
+        } else {
+            completed_ballot = this.server_state.getCompletedBallot();
+        }
+
+        DidaMeetingsMaster.NewBallotReply.Builder response_builder = DidaMeetingsMaster.NewBallotReply.newBuilder();
+        response_builder.setReqid(request_id);
+        response_builder.setCompletedballot(completed_ballot);
+
+        DidaMeetingsMaster.NewBallotReply response = response_builder.build();
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
     }
 
     @Override
     public void setdebug(DidaMeetingsMaster.SetDebugRequest request, StreamObserver<DidaMeetingsMaster.SetDebugReply> responseObserver) {
-	// for debug purposes
-	System.out.println(request);
+        // for debug purposes
+        System.out.println(request);
 
-	boolean response_value = true;
+        boolean response_value = true;
 
-	int request_id   = request.getReqid();
-	this.server_state.setDebugMode(request.getMode());
-	if(this.server_state.getDebugMode() == 2){
-	    System.out.println("===============================");
-	    System.out.println("inside unfreeze");
-	    System.out.println("===============================");
-	    try {
-		synchronized(this.server_state.main_loop) {
-		    this.server_state.main_loop.wakeup ();
-		}
-	    } catch (Exception e) {
-	    }
-	}
-	if (this.server_state.getDebugMode() == 3) { //FIXME BOTH IFS ARE THE SAME MAYBE NOT NEEDED
-		try {
-		synchronized(this.server_state.main_loop) {
-		    this.server_state.main_loop.wakeup ();
-		}
-	    } catch (Exception e) {
-	    }
-	}
-	if (this.server_state.getDebugMode() == 4) {
-	    System.out.println("===============================");
-	    System.out.println("SLOW MODE ON - DELAYS ENABLED");
-	    System.out.println("===============================");
-	}
-	if (this.server_state.getDebugMode() == 5) {
-	    System.out.println("===============================");
-	    System.out.println("SLOW MODE OFF - DELAYS DISABLED");
-	    System.out.println("===============================");
-	}
+        int request_id = request.getReqid();
+        this.server_state.setDebugMode(request.getMode());
+        if (this.server_state.getDebugMode() == 2) {
+            System.out.println("===============================");
+            System.out.println("inside unfreeze");
+            System.out.println("===============================");
+            try {
+                synchronized (this.server_state.main_loop) {
+                    this.server_state.main_loop.wakeup();
+                }
+            } catch (Exception e) {
+            }
+        }
+        if (this.server_state.getDebugMode() == 3) { //FIXME BOTH IFS ARE THE SAME MAYBE NOT NEEDED
+            try {
+                synchronized (this.server_state.main_loop) {
+                    this.server_state.main_loop.wakeup();
+                }
+            } catch (Exception e) {
+            }
+        }
+        if (this.server_state.getDebugMode() == 4) {
+            System.out.println("===============================");
+            System.out.println("SLOW MODE ON - DELAYS ENABLED");
+            System.out.println("===============================");
+        }
+        if (this.server_state.getDebugMode() == 5) {
+            System.out.println("===============================");
+            System.out.println("SLOW MODE OFF - DELAYS DISABLED");
+            System.out.println("===============================");
+        }
 
-	// for debug purposes
-	System.out.println("Setting debug mode to = " + this.server_state.getDebugMode());
+        // for debug purposes
+        System.out.println("Setting debug mode to = " + this.server_state.getDebugMode());
 
-	DidaMeetingsMaster.SetDebugReply.Builder response_builder = DidaMeetingsMaster.SetDebugReply.newBuilder();
-	response_builder.setReqid(request_id);
-	response_builder.setAck(response_value);
-	
-	DidaMeetingsMaster.SetDebugReply response = response_builder.build();
-	responseObserver.onNext(response);
-	responseObserver.onCompleted();
+        DidaMeetingsMaster.SetDebugReply.Builder response_builder = DidaMeetingsMaster.SetDebugReply.newBuilder();
+        response_builder.setReqid(request_id);
+        response_builder.setAck(response_value);
+
+        DidaMeetingsMaster.SetDebugReply response = response_builder.build();
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
     }
 }
