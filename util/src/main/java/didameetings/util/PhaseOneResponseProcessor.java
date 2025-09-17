@@ -19,6 +19,7 @@ public class PhaseOneResponseProcessor extends GenericResponseProcessor<DidaMeet
         this.high_ballot = h;
         this.promised = true;
         this.value = -1;
+        this.responses = 0;
     }
     public boolean getPromised() {
         return this.promised;
@@ -37,20 +38,20 @@ public class PhaseOneResponseProcessor extends GenericResponseProcessor<DidaMeet
     }
     @Override
     public synchronized boolean onNext(ArrayList<DidaMeetingsPaxos.PhaseOneReply> all_responses, DidaMeetingsPaxos.PhaseOneReply last_response) {
-        System.out.println("------------");
-        System.out.println("last response:"+last_response);
+        //System.out.println("------------");
+        //System.out.println("last response2:"+ all_responses);
         this.responses++;
     
         if(last_response.getPromised() == false){
             this.promised = false;
             this.high_ballot = Math.max(this.high_ballot, last_response.getMaxballot());
-        }else{
-            if(last_response.getValballot() > this.low_ballot){
+        } else{
+            if(last_response.getValue() != -1 && last_response.getValballot() < this.high_ballot){
                 this.low_ballot = last_response.getValballot();
                 this.value = last_response.getValue();
             }
         }
-        if(this.responses < 2){
+        if(this.responses < 3){
             return false;
         }
         return this.promised;

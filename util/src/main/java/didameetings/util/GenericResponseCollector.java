@@ -27,7 +27,6 @@ public class GenericResponseCollector<T> {
     }
 
     public synchronized void addResponse(T resp) {
-        System.out.println("adding response");
         if (!this.done) {
             collected_responses.add(resp);
             if (this.processor != null) {
