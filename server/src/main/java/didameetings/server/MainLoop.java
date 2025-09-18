@@ -67,9 +67,14 @@ public class MainLoop implements Runnable {
             System.out.println("SLOW MODE ON: APPLYING RANDOM DELAY");
             System.out.println("====================================");
             try {
-                Thread.sleep(randomDelay()); // Sleep for a random duration
+                Thread.sleep(10000); // Sleep for a random duration
+                System.out.println("====================================");
+                System.out.println("SLOW MODE ON: WAKING UP !!!");
+                System.out.println("====================================");
+                //Thread.sleep(randomDelay()); // Sleep for a random duration
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt(); // Restore interrupt flag
+                System.out.println("Thread was interrupted and woke up early!");
+                //Thread.currentThread().interrupt(); // Restore interrupt flag
             }
         }
     }
@@ -84,7 +89,6 @@ public class MainLoop implements Runnable {
     }
 
     public synchronized void processEntry(int entry_number) {
-        checkDelay();
         PaxosInstance next_entry = this.server_state.paxos_log.testAndSetEntry(entry_number);
 
         while (next_entry.decided == false) {
@@ -128,6 +132,7 @@ public class MainLoop implements Runnable {
                     this.server_state.async_stubs[acceptors.get(i)].phaseone(phase_one_request, phase_one_observer);
                 }
 
+                checkDelay();
                 phase_one_collector.waitUntilDone();
                 if (phase_one_processor.getPromised() == false) {
                     ballot_aborted = true;
@@ -138,8 +143,8 @@ public class MainLoop implements Runnable {
                 } else if (phase_one_processor.getLowballot() > -1) {
                     phase_two_value = phase_one_processor.getValue();
                 }
-
-                System.out.println("Paxos phase 1 ended with aborted = " + ballot_aborted + " and read ballot = " + phase_one_processor.getLowballot() + " and value " + phase_two_value);
+                phase_one_readballot = phase_one_processor.getHighballot();
+                System.out.println("Paxos phase 1 ended with aborted = " + ballot_aborted + " and read ballot = " + phase_one_readballot + " and value " + phase_two_value);
 
                 // Paxos Phase Two
                 if (ballot_aborted == false) {

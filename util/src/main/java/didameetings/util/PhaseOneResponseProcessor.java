@@ -51,7 +51,7 @@ public class PhaseOneResponseProcessor extends GenericResponseProcessor<DidaMeet
                 this.value = last_response.getValue();
             }
         }
-        if(this.responses < 3){
+        if(this.responses < 2){
             return false;
         }
         return this.promised;

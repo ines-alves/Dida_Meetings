@@ -24,6 +24,23 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
 
     @Override
     public void phaseone(DidaMeetingsPaxos.PhaseOneRequest request, StreamObserver<DidaMeetingsPaxos.PhaseOneReply> responseObserver) {
+        
+        if (this.server_state.getDebugMode() == 4) {
+            System.out.println("====================================");
+            System.out.println("SLOW MODE ON: APPLYING RANDOM DELAY");
+            System.out.println("====================================");
+            try {
+                Thread.sleep(10000); // Sleep for a random duration
+                System.out.println("====================================");
+                System.out.println("SLOW MODE ON: WAKING UP !!!");
+                System.out.println("====================================");
+                //Thread.sleep(randomDelay()); // Sleep for a random duration
+            } catch (InterruptedException e) {
+                System.out.println("Thread was interrupted and woke up early!");
+                //Thread.currentThread().interrupt(); // Restore interrupt flag
+            }
+        }
+        
         System.out.println("Receive phase1 request: \n" + request);
 
         int instance = request.getInstance();
