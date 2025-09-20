@@ -48,6 +48,8 @@ public class MainLoop implements Runnable {
                 }
             }
             */
+            this.next_log_entry++;
+            PaxosInstance next_entry = this.server_state.paxos_log.testAndSetEntry(this.next_log_entry);
             while (this.has_work == false || (this.server_state.getDebugMode() == 1)) { //FIXME check this later
                 System.out.println(" ---HERE 1--- ");
                 try {
@@ -62,16 +64,30 @@ public class MainLoop implements Runnable {
             System.out.println(" ---HERE 2--- ");
             int ballot = this.server_state.getCurrentBallot();
             RequestRecord request_record = this.server_state.req_history.getFirstPending();
-            if ((ballot > -1) && (request_record != null) && (this.server_state.scheduler.leader(ballot) == this.server_state.my_id)) {
+
+            if ((ballot > -1) && (request_record != null) && (this.server_state.scheduler.leader(ballot) == this.server_state.my_id)) { //only the leader executes
                 System.out.println("I am the leader for request with id " + request_record.getId());
                 int completed_ballot = this.server_state.getCompletedBallot();
                 System.out.println("This is the server current ballot = " + ballot + " and this is the completed ballot = " + completed_ballot);
-                this.next_log_entry++;
-                if (ballot != completed_ballot) {
+                
+                if (ballot > completed_ballot) {
                     this.longPhase1(this.next_log_entry);
                 } else{
                     int phase_two_value = request_record.getId();
                     this.phase2(this.next_log_entry, phase_two_value);
+                }
+            } 
+
+            if (next_entry.decided == false) {
+                System.out.println(" ---HERE 3--- ");
+                try {
+                    this.has_work = false;
+                    //checkCrash();
+                    //wait();
+                    synchronized (this) {
+                        wait(); // must hold monitor of `this`
+                    }
+                } catch (InterruptedException e) {
                 }
             }
             //this.next_log_entry++;
@@ -119,12 +135,12 @@ public class MainLoop implements Runnable {
 
     public synchronized void longPhase1(int entry_number) { //later this shall not be synchronized
         PaxosInstance next_entry = this.server_state.paxos_log.testAndSetEntry(entry_number);
-        while (this.server_state.req_history.getFirstPending() != null) {
-            new Thread(() -> phase1(entry_number)).start();
+        for (RequestRecord request_record : this.server_state.req_history.getAllPending()) {
+            new Thread(() -> phase1(entry_number, request_record.getId())).start();
         }
     }
 
-    public synchronized void phase1(int entry_number) { //later this shall not be synchronized
+    public synchronized void phase1(int entry_number, int request_id) { //later this shall not be synchronized
         int ballot = this.server_state.getCurrentBallot();  // repeated code FIXME
         int completed_ballot = this.server_state.getCompletedBallot();// repeated code FIXME
 
@@ -134,8 +150,8 @@ public class MainLoop implements Runnable {
         
         boolean ballot_aborted = false;
         int phase_one_readballot = -1;
-        RequestRecord request_record = this.server_state.req_history.getFirstPending(); // repeated code FIXME
-        int phase_two_value = request_record.getId();
+        
+        int phase_two_value = request_id;
 
         // Paxos Phase One
         System.out.println("Going to run paxos phase 1");

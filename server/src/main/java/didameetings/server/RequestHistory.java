@@ -2,6 +2,7 @@ package didameetings.server;
 
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Collection;
 
 public class RequestHistory {
 
@@ -25,6 +26,10 @@ public class RequestHistory {
         }else {
             return null;
         }
+    }
+
+    public synchronized Collection<RequestRecord> getAllPending() {
+        return this.pending.values();
     }
 
     public synchronized RequestRecord getIfProcessed(int requestid) {
