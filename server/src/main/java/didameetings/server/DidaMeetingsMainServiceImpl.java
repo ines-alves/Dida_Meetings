@@ -31,7 +31,7 @@ public class DidaMeetingsMainServiceImpl extends DidaMeetingsMainServiceGrpc.Did
 
         RequestRecord request_record = new RequestRecord(reqid, command);
         this.server_state.req_history.addToPending(reqid, request_record);
-        this.server_state.main_loop.wakeup();
+        this.server_state.main_loop.wakeup(0);
         boolean result = request_record.waitForResponse();
 
         // for debug purposes
@@ -61,7 +61,7 @@ public class DidaMeetingsMainServiceImpl extends DidaMeetingsMainServiceGrpc.Did
 
         RequestRecord request_record = new RequestRecord(reqid, command);
         this.server_state.req_history.addToPending(reqid, request_record);
-        this.server_state.main_loop.wakeup();
+        this.server_state.main_loop.wakeup(0);
         boolean result = request_record.waitForResponse();
 
         // for debug purposes
@@ -93,7 +93,7 @@ public class DidaMeetingsMainServiceImpl extends DidaMeetingsMainServiceGrpc.Did
 
         RequestRecord request_record = new RequestRecord(reqid, command);
         this.server_state.req_history.addToPending(reqid, request_record);
-        this.server_state.main_loop.wakeup();
+        this.server_state.main_loop.wakeup(0);
         boolean result = request_record.waitForResponse();
 
         // for debug purposes
@@ -123,7 +123,7 @@ public class DidaMeetingsMainServiceImpl extends DidaMeetingsMainServiceGrpc.Did
 
         RequestRecord request_record = new RequestRecord(reqid, command);
         this.server_state.req_history.addToPending(reqid, request_record);
-        this.server_state.main_loop.wakeup();
+        this.server_state.main_loop.wakeup(0);
         boolean result = request_record.waitForResponse();
 
         // for debug purposes
@@ -152,7 +152,7 @@ public class DidaMeetingsMainServiceImpl extends DidaMeetingsMainServiceGrpc.Did
 
         RequestRecord request_record = new RequestRecord(reqid, command);
         this.server_state.req_history.addToPending(reqid, request_record);
-        this.server_state.main_loop.wakeup();
+        this.server_state.main_loop.wakeup(0);
         boolean result = request_record.waitForResponse();
 
         // for debug purposes

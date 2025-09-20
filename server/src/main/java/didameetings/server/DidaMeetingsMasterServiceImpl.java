@@ -28,7 +28,7 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
         if (new_ballot > this.server_state.getCurrentBallot()) {
             this.server_state.setCurrentBallot(new_ballot);
 
-            this.server_state.main_loop.wakeup();
+            this.server_state.main_loop.wakeup(2);
 
             completed_ballot = this.server_state.waitForCompletedBallot(new_ballot);
         } else {
@@ -59,7 +59,7 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
             System.out.println("===============================");
             try {
                 synchronized (this.server_state.main_loop) {
-                    this.server_state.main_loop.wakeup();
+                    this.server_state.main_loop.wakeup(3);
                 }
             } catch (Exception e) {
             }
@@ -67,7 +67,7 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
         if (this.server_state.getDebugMode() == 3) { //FIXME BOTH IFS ARE THE SAME MAYBE NOT NEEDED
             try {
                 synchronized (this.server_state.main_loop) {
-                    this.server_state.main_loop.wakeup();
+                    this.server_state.main_loop.wakeup(3);
                 }
             } catch (Exception e) {
             }

@@ -158,7 +158,7 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
                     System.out.println("Paxos learner: waking up the main loop");
                     this.server_state.updateCompletedBallot(ballot);
                     entry.decided = true;
-                    this.server_state.main_loop.wakeup();
+                    this.server_state.main_loop.wakeup(1);
                 }
             } else if (ballot > entry.accept_ballot) {
                 System.out.println("Paxos learner for instance " + instance + " : resetting ");
