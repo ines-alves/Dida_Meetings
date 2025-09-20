@@ -50,46 +50,39 @@ public class MainLoop implements Runnable {
             */
             this.next_log_entry++;
             PaxosInstance next_entry = this.server_state.paxos_log.testAndSetEntry(this.next_log_entry);
-            while (this.has_work == false || (this.server_state.getDebugMode() == 1)) { //FIXME check this later
-                System.out.println(" ---HERE 1--- ");
-                try {
-                    //checkCrash();
-                    //wait();
-                    synchronized (this) {
-                        wait(); // must hold monitor of `this`
+            System.out.println("--- THIS IS THE LOG ENTRY " + next_log_entry);
+            while (next_entry.decided == false) {
+                while (this.has_work == false || (this.server_state.getDebugMode() == 1)) { //FIXME check this later
+                    System.out.println(" ---HERE 1--- ");
+                    try {
+                        //checkCrash();
+                        //wait();
+                        synchronized (this) {
+                            wait(); // must hold monitor of `this`
+                        }
+                    } catch (InterruptedException e) {
                     }
-                } catch (InterruptedException e) {
                 }
-            }
-            System.out.println(" ---HERE 2--- ");
-            int ballot = this.server_state.getCurrentBallot();
-            RequestRecord request_record = this.server_state.req_history.getFirstPending();
+                System.out.println(" ---HERE 2--- ");
+                int ballot = this.server_state.getCurrentBallot();
+                RequestRecord request_record = this.server_state.req_history.getFirstPending();
 
-            if ((ballot > -1) && (request_record != null) && (this.server_state.scheduler.leader(ballot) == this.server_state.my_id)) { //only the leader executes
-                System.out.println("I am the leader for request with id " + request_record.getId());
-                int completed_ballot = this.server_state.getCompletedBallot();
-                System.out.println("This is the server current ballot = " + ballot + " and this is the completed ballot = " + completed_ballot);
-                
-                if (ballot > completed_ballot) {
-                    this.longPhase1(this.next_log_entry);
-                } else{
-                    int phase_two_value = request_record.getId();
-                    this.phase2(this.next_log_entry, phase_two_value);
-                }
-            } 
-
-            if (next_entry.decided == false) {
-                System.out.println(" ---HERE 3--- ");
-                try {
-                    this.has_work = false;
-                    //checkCrash();
-                    //wait();
-                    synchronized (this) {
-                        wait(); // must hold monitor of `this`
+                if ((ballot > -1) && (request_record != null) && (this.server_state.scheduler.leader(ballot) == this.server_state.my_id)) { //only the leader executes
+                    System.out.println("I am the leader for request with id " + request_record.getId());
+                    int completed_ballot = this.server_state.getCompletedBallot();
+                    System.out.println("This is the server current ballot = " + ballot + " and this is the completed ballot = " + completed_ballot);
+                    
+                    if (ballot > completed_ballot) {
+                        this.longPhase1(this.next_log_entry);
+                    } else{
+                        int phase_two_value = request_record.getId();
+                        this.phase2(this.next_log_entry, phase_two_value);
                     }
-                } catch (InterruptedException e) {
-                }
+                } 
+                this.has_work = false;
+     
             }
+            processEntry(next_entry);
             //this.next_log_entry++;
             //this.processEntry(this.next_log_entry);
         }
@@ -238,7 +231,7 @@ public class MainLoop implements Runnable {
             next_entry.command_id = phase_two_value;
             next_entry.decided = true;
         }
-        this.processEntry(next_entry);
+        //this.processEntry(next_entry);
     }
 
     public synchronized void processEntry(PaxosInstance next_entry) {
