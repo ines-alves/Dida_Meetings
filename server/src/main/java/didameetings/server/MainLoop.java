@@ -1,6 +1,7 @@
 package didameetings.server;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 
@@ -64,7 +65,7 @@ public class MainLoop implements Runnable {
             this.next_log_entry++;
             //PaxosInstance next_entry = this.server_state.paxos_log.testAndSetEntry(this.next_log_entry);
             System.out.println("--- NEW THREAD FOR: " + next_log_entry + " ---");
-            new Thread(() -> multiPaxos(this.next_log_entry)).start();
+            multiPaxos(this.next_log_entry);
             this.has_work = -1;
             /*
             while (next_entry.decided == false) {
@@ -143,50 +144,78 @@ public class MainLoop implements Runnable {
     }
 
     public synchronized void multiPaxos(int entry_number) {
-        PaxosInstance next_entry = this.server_state.paxos_log.testAndSetEntry(entry_number);
-        while (next_entry.decided == false) {
-            System.out.println(" ---HERE 2--- "); // maybe missing here some wait beacuse of has work idk see this 
-            int ballot = this.server_state.getCurrentBallot();
-            RequestRecord request_record = this.server_state.req_history.getFirstPending();
-
-            if ((ballot > -1) && (request_record != null) && (this.server_state.scheduler.leader(ballot) == this.server_state.my_id)) { //only the leader executes
-                System.out.println("I am the leader for request with id " + request_record.getId());
-                int completed_ballot = this.server_state.getCompletedBallot();
-                System.out.println("This is the server current ballot = " + ballot + " and this is the completed ballot = " + completed_ballot);
+        Collection<RequestRecord> pendingRequests = this.server_state.req_history.getAllPending();
+        int ballot = this.server_state.getCurrentBallot();
+        if ((ballot > -1) && (this.server_state.scheduler.leader(ballot) == this.server_state.my_id)) {
+            for (RequestRecord request_record : pendingRequests) {
+                int current_entry = this.next_log_entry;
                 
-                if (ballot > completed_ballot) {
-                    this.longPhase1(this.next_log_entry);
-                } else{
-                    int phase_two_value = request_record.getId();
-                    this.phase2(this.next_log_entry, phase_two_value);
-                }
-            } 
-            
-            while (this.has_work != 1 || (this.server_state.getDebugMode() == 1)) { //FIXME check this later this is for the none leader nodes
-                    System.out.println(" ---HERE 1--- ");
-                    try {
-                        //checkCrash();
-                        //wait();
-                        synchronized (this) {
-                            wait(); // must hold monitor of `this`
-                        }
-                    } catch (InterruptedException e) {
-                    }
+                this.next_log_entry++;
+                // Start a new thread for each Paxos instance
+                new Thread(() -> {
+                    int completed_ballot = this.server_state.getCompletedBallot();
+                    if (ballot > completed_ballot) {
+                        phase1(current_entry, request_record.getId());
+                    } 
+                    phase2(current_entry, request_record.getId());
+                    
+                    PaxosInstance entry = this.server_state.paxos_log.testAndSetEntry(current_entry);
+                    processEntry(entry);
+                }).start();
             }
-    
+            this.has_work = -1;
         }
-        this.has_work = -1;
-        processEntry(next_entry);
     }
+    /*
+     * 
+     public synchronized void multiPaxos(int entry_number) {
+         PaxosInstance next_entry = this.server_state.paxos_log.testAndSetEntry(entry_number);
+         while (next_entry.decided == false) {
+             System.out.println(" ---HERE 2--- "); // maybe missing here some wait beacuse of has work idk see this 
+             int ballot = this.server_state.getCurrentBallot();
+             RequestRecord request_record = this.server_state.req_history.getFirstPending();
+ 
+             if ((ballot > -1) && (request_record != null) && (this.server_state.scheduler.leader(ballot) == this.server_state.my_id)) { //only the leader executes
+                 System.out.println("I am the leader for request with id " + request_record.getId());
+                 int completed_ballot = this.server_state.getCompletedBallot();
+                 System.out.println("This is the server current ballot = " + ballot + " and this is the completed ballot = " + completed_ballot);
+                 
+                 if (ballot > completed_ballot) {
+                     this.longPhase1(this.next_log_entry);
+                 } else{
+                     int phase_two_value = request_record.getId();
+                     this.phase2(this.next_log_entry, phase_two_value);
+                 }
+             } 
+             
+             while (this.has_work != 1 || (this.server_state.getDebugMode() == 1)) { //FIXME check this later this is for the none leader nodes
+                     System.out.println(" ---HERE 1--- ");
+                     try {
+                         //checkCrash();
+                         //wait();
+                         synchronized (this) {
+                             wait(); // must hold monitor of `this`
+                         }
+                     } catch (InterruptedException e) {
+                     }
+             }
+     
+         }
+         this.has_work = -1;
+         processEntry(next_entry);
+     }
+     */
         
 
-
-    public synchronized void longPhase1(int entry_number) { //later this shall not be synchronized
-        PaxosInstance next_entry = this.server_state.paxos_log.testAndSetEntry(entry_number);
-        for (RequestRecord request_record : this.server_state.req_history.getAllPending()) {
-            new Thread(() -> phase1(entry_number, request_record.getId())).start();
-        }
-    }
+    /*
+     
+     public synchronized void longPhase1(int entry_number) { //later this shall not be synchronized
+         PaxosInstance next_entry = this.server_state.paxos_log.testAndSetEntry(entry_number);
+         for (RequestRecord request_record : this.server_state.req_history.getAllPending()) {
+             new Thread(() -> phase1(entry_number, request_record.getId())).start();
+         }
+     }
+     */
 
     public synchronized void phase1(int entry_number, int request_id) { //later this shall not be synchronized
         int ballot = this.server_state.getCurrentBallot();  // repeated code FIXME
@@ -239,9 +268,12 @@ public class MainLoop implements Runnable {
         }
         phase_one_readballot = phase_one_processor.getHighballot();
         System.out.println("Paxos phase 1 ended with aborted = " + ballot_aborted + " and read ballot = " + phase_one_readballot + " and value " + phase_two_value);
-        if (ballot_aborted == false) {
-            this.phase2(entry_number, phase_two_value);
-        }
+        /*
+         * 
+         if (ballot_aborted == false) {
+             this.phase2(entry_number, phase_two_value);
+         }
+         */
     }
 
     public synchronized void phase2(int entry_number ,int phase_two_value) { //later this shall not be synchronized

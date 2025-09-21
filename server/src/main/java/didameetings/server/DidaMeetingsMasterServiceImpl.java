@@ -59,7 +59,7 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
             System.out.println("===============================");
             try {
                 synchronized (this.server_state.main_loop) {
-                    this.server_state.main_loop.wakeup(3);
+                    this.server_state.main_loop.wakeup(0);
                 }
             } catch (Exception e) {
             }
