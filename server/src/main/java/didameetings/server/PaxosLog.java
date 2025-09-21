@@ -1,5 +1,7 @@
 package didameetings.server;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Hashtable;
 
 public class PaxosLog {
@@ -12,6 +14,18 @@ public class PaxosLog {
 
     public synchronized int length() {
         return this.log.size();
+    }
+
+    public synchronized ArrayList<Integer> getUndecidedInstances() {
+        ArrayList<Integer> undecidedInstances = new ArrayList<Integer>();
+
+        for (Integer key : log.keySet()) {
+            PaxosInstance entry = log.get(key);
+            if (!entry.decided) {  
+                undecidedInstances.add(key);
+            }
+        }
+        return undecidedInstances;
     }
 
     public synchronized PaxosInstance getEntry(int position) {

@@ -43,4 +43,5 @@ public class PaxosInstance {
         this.decided = false;
         this.value_is_locked = false;
     }
+
 }
