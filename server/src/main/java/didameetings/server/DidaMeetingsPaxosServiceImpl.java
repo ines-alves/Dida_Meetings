@@ -4,6 +4,7 @@ import java.util.*;
 
 import didameetings.DidaMeetingsMain;
 import didameetings.DidaMeetingsPaxos;
+import didameetings.DidaMeetingsPaxos.LongPhaseOneReply;
 import didameetings.DidaMeetingsPaxosServiceGrpc;
 
 import didameetings.util.GenericResponseCollector;
@@ -23,7 +24,7 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
     }
 
     @Override
-    public void LongPhaseone(DidaMeetingsPaxos.PhaseOneRequest request, StreamObserver<DidaMeetingsPaxos.LongPhaseOneReply> responseObserver) {
+    public void longPhaseone(DidaMeetingsPaxos.PhaseOneRequest request, StreamObserver<DidaMeetingsPaxos.LongPhaseOneReply> responseObserver) {
         
         if (this.server_state.getDebugMode() == 4) {
             System.out.println("====================================");
@@ -47,8 +48,8 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
         int ballot = request.getRequestballot();
         PaxosInstance entry = this.server_state.paxos_log.testAndSetEntry(instance, ballot);
         boolean promised = false;
-        int value = entry.command_id;
-        int valballot = entry.write_ballot;
+        //int value = entry.command_id;
+        //int valballot = entry.write_ballot;
 
         if (ballot >= this.server_state.getCurrentBallot()) {
             promised = true;
@@ -57,20 +58,28 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
         }
 
         int maxballot = this.server_state.getCurrentBallot();
-        Collection<PaxosInstance> undecidedInstances = this.server_state.paxos_log.getUndecidedInstances();
-        for (PaxosInstance inst : undecidedInstances) {
-    
+
+        ArrayList<PaxosInstance> undecidedInstances = this.server_state.paxos_log.getUndecidedInstances();
+        ArrayList<DidaMeetingsPaxos.PhaseOneReply> longPhaseOneReply = new ArrayList<DidaMeetingsPaxos.PhaseOneReply>();
+        for (PaxosInstance undecidedInstance : undecidedInstances) {
+            
+
+            DidaMeetingsPaxos.PhaseOneReply.Builder undecided_response_builder = DidaMeetingsPaxos.PhaseOneReply.newBuilder();
+            undecided_response_builder.setInstance(undecidedInstance.instance_nb);
+            undecided_response_builder.setServerid(this.server_state.my_id);
+            undecided_response_builder.setRequestballot(ballot);
+            undecided_response_builder.setPromised(promised);
+            undecided_response_builder.setValue(undecidedInstance.command_id);
+            undecided_response_builder.setValballot(undecidedInstance.write_ballot);
+            undecided_response_builder.setMaxballot(maxballot); // ou undecidedInstance.read_ballot ?
+
+            DidaMeetingsPaxos.PhaseOneReply undecided_response = undecided_response_builder.build();
+            longPhaseOneReply.add(undecided_response);
         }
+
         // System.out.println("Instance = " + instance + " ballot = " + ballot + " current_ballot = " + this.server_state.getCurrentBallot() + " val = " + value + " valballot = " + valballot + " maxballot = " + maxballot + " accepted = " + accepted);
         DidaMeetingsPaxos.LongPhaseOneReply.Builder response_builder = DidaMeetingsPaxos.LongPhaseOneReply.newBuilder();
-        response_builder.setInstance(instance);
-        response_builder.setServerid(this.server_state.my_id);
-        response_builder.setRequestballot(ballot);
-        response_builder.setPromised(promised);
-        response_builder.setValue(value);
-        response_builder.setValballot(valballot);
-        response_builder.setMaxballot(maxballot);
-
+        response_builder.addAllLongPhaseOne(longPhaseOneReply);
         DidaMeetingsPaxos.LongPhaseOneReply response = response_builder.build();
 
         // System.out.println("Sending phase1 response: " + response);

@@ -19,7 +19,7 @@ message PhaseOneReply {
   int32 maxballot       = 7;
 }
 
-message longPhaseOneReply {
+message LongPhaseOneReply {
   repeated PhaseOneReply longPhaseOne = 1;
 }
 
@@ -49,7 +49,7 @@ message LearnReply {
 }
 
 service DidaMeetingsPaxosService {
-  rpc longPhaseone (PhaseOneRequest) returns (longPhaseOneReply);
+  rpc longPhaseone (PhaseOneRequest) returns (LongPhaseOneReply);
   rpc phasetwo (PhaseTwoRequest) returns (PhaseTwoReply);
   rpc learn (LearnRequest) returns (LearnReply);
 }

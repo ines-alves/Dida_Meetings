@@ -43,9 +43,12 @@ public class PhaseOneBogusProcessor extends GenericResponseProcessor<DidaMeeting
     }
 
     public synchronized boolean onNext(ArrayList<DidaMeetingsPaxos.LongPhaseOneReply> all_responses, DidaMeetingsPaxos.LongPhaseOneReply last_response) {
-        this.maxballot = last_response.getMaxballot();
-        this.value = last_response.getValue();
-        this.valballot = last_response.getValballot();
+        /*
+         * 
+         this.maxballot = last_response.getMaxballot();
+         this.value = last_response.getValue();
+         this.valballot = last_response.getValballot();
+         */
         return true;
     }
 }
