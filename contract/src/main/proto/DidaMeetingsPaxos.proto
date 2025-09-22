@@ -5,18 +5,22 @@ syntax = "proto3";
 package didameetings;
 
 message PhaseOneRequest {
-  int32 instance        = 1;
+  int32 instance      = 1;
   int32 requestballot	= 2;
 }
 
 message PhaseOneReply {
   int32 instance        = 1;
   int32 serverid        = 2;
-  int32 requestballot	= 3;
-  bool  promised 	= 4;
+  int32 requestballot	  = 3;
+  bool  promised      	= 4;
   int32 value           = 5;
   int32 valballot       = 6;
   int32 maxballot       = 7;
+}
+
+message longPhaseOneReply {
+  repeated PhaseOneReply longPhaseOne = 1;
 }
 
 message PhaseTwoRequest {
@@ -45,7 +49,7 @@ message LearnReply {
 }
 
 service DidaMeetingsPaxosService {
-  rpc phaseone (PhaseOneRequest) returns (PhaseOneReply);
+  rpc longPhaseone (PhaseOneRequest) returns (longPhaseOneReply);
   rpc phasetwo (PhaseTwoRequest) returns (PhaseTwoReply);
   rpc learn (LearnRequest) returns (LearnReply);
 }

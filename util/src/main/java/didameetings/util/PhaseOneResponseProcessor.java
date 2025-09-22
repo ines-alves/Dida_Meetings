@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import didameetings.DidaMeetingsPaxos;
 import didameetings.configs.ConfigurationScheduler;
 
-public class PhaseOneResponseProcessor extends GenericResponseProcessor<DidaMeetingsPaxos.PhaseOneReply>{
+public class PhaseOneResponseProcessor extends GenericResponseProcessor<DidaMeetingsPaxos.LongPhaseOneReply>{
     private ConfigurationScheduler scheduler;
     private boolean promised;
     private int value;
@@ -37,7 +37,7 @@ public class PhaseOneResponseProcessor extends GenericResponseProcessor<DidaMeet
         return this.high_ballot;
     }
     @Override
-    public synchronized boolean onNext(ArrayList<DidaMeetingsPaxos.PhaseOneReply> all_responses, DidaMeetingsPaxos.PhaseOneReply last_response) {
+    public synchronized boolean onNext(ArrayList<DidaMeetingsPaxos.LongPhaseOneReply> all_responses, DidaMeetingsPaxos.LongPhaseOneReply last_response) {
         //System.out.println("------------");
         //System.out.println("last response2:"+ all_responses);
         this.responses++;

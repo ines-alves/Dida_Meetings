@@ -262,12 +262,12 @@ public class MainLoop implements Runnable {
         PhaseOneResponseProcessor phase_one_processor = new PhaseOneResponseProcessor(this.server_state.scheduler, low_ballot, high_ballot);
         //PhaseOneBogusProcessor phase_one_processor = new PhaseOneBogusProcessor(this.server_state.scheduler, low_ballot, high_ballot);
 
-        ArrayList<DidaMeetingsPaxos.PhaseOneReply> phase_one_responses = new ArrayList<DidaMeetingsPaxos.PhaseOneReply>();
-        GenericResponseCollector<DidaMeetingsPaxos.PhaseOneReply> phase_one_collector = new GenericResponseCollector<DidaMeetingsPaxos.PhaseOneReply>(phase_one_responses, n_acceptors, phase_one_processor);
+        ArrayList<DidaMeetingsPaxos.LongPhaseOneReply> phase_one_responses = new ArrayList<DidaMeetingsPaxos.LongPhaseOneReply>();
+        GenericResponseCollector<DidaMeetingsPaxos.LongPhaseOneReply> phase_one_collector = new GenericResponseCollector<DidaMeetingsPaxos.LongPhaseOneReply>(phase_one_responses, n_acceptors, phase_one_processor);
 
         for (int i = 0; i < n_acceptors; i++) {
-            CollectorStreamObserver<DidaMeetingsPaxos.PhaseOneReply> phase_one_observer = new CollectorStreamObserver<DidaMeetingsPaxos.PhaseOneReply>(phase_one_collector);
-            this.server_state.async_stubs[acceptors.get(i)].phaseone(phase_one_request, phase_one_observer);
+            CollectorStreamObserver<DidaMeetingsPaxos.LongPhaseOneReply> phase_one_observer = new CollectorStreamObserver<DidaMeetingsPaxos.LongPhaseOneReply>(phase_one_collector);
+            this.server_state.async_stubs[acceptors.get(i)].LongPhaseone(phase_one_request, phase_one_observer);
         }
 
         checkDelay();
@@ -375,11 +375,11 @@ public class MainLoop implements Runnable {
                 PhaseOneResponseProcessor phase_one_processor = new PhaseOneResponseProcessor(this.server_state.scheduler, low_ballot, high_ballot);
                 //PhaseOneBogusProcessor phase_one_processor = new PhaseOneBogusProcessor(this.server_state.scheduler, low_ballot, high_ballot);
 
-                ArrayList<DidaMeetingsPaxos.PhaseOneReply> phase_one_responses = new ArrayList<DidaMeetingsPaxos.PhaseOneReply>();
-                GenericResponseCollector<DidaMeetingsPaxos.PhaseOneReply> phase_one_collector = new GenericResponseCollector<DidaMeetingsPaxos.PhaseOneReply>(phase_one_responses, n_acceptors, phase_one_processor);
+                ArrayList<DidaMeetingsPaxos.LongPhaseOneReply> phase_one_responses = new ArrayList<DidaMeetingsPaxos.LongPhaseOneReply>();
+                GenericResponseCollector<DidaMeetingsPaxos.LongPhaseOneReply> phase_one_collector = new GenericResponseCollector<DidaMeetingsPaxos.LongPhaseOneReply>(phase_one_responses, n_acceptors, phase_one_processor);
 
                 for (int i = 0; i < n_acceptors; i++) {
-                    CollectorStreamObserver<DidaMeetingsPaxos.PhaseOneReply> phase_one_observer = new CollectorStreamObserver<DidaMeetingsPaxos.PhaseOneReply>(phase_one_collector);
+                    CollectorStreamObserver<DidaMeetingsPaxos.LongPhaseOneReply> phase_one_observer = new CollectorStreamObserver<DidaMeetingsPaxos.LongPhaseOneReply>(phase_one_collector);
                     this.server_state.async_stubs[acceptors.get(i)].phaseone(phase_one_request, phase_one_observer);
                 }
 

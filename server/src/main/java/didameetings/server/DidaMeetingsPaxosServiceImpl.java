@@ -23,7 +23,7 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
     }
 
     @Override
-    public void phaseone(DidaMeetingsPaxos.PhaseOneRequest request, StreamObserver<DidaMeetingsPaxos.PhaseOneReply> responseObserver) {
+    public void LongPhaseone(DidaMeetingsPaxos.PhaseOneRequest request, StreamObserver<DidaMeetingsPaxos.LongPhaseOneReply> responseObserver) {
         
         if (this.server_state.getDebugMode() == 4) {
             System.out.println("====================================");
@@ -57,9 +57,12 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
         }
 
         int maxballot = this.server_state.getCurrentBallot();
-
+        Collection<PaxosInstance> undecidedInstances = this.server_state.paxos_log.getUndecidedInstances();
+        for (PaxosInstance inst : undecidedInstances) {
+    
+        }
         // System.out.println("Instance = " + instance + " ballot = " + ballot + " current_ballot = " + this.server_state.getCurrentBallot() + " val = " + value + " valballot = " + valballot + " maxballot = " + maxballot + " accepted = " + accepted);
-        DidaMeetingsPaxos.PhaseOneReply.Builder response_builder = DidaMeetingsPaxos.PhaseOneReply.newBuilder();
+        DidaMeetingsPaxos.LongPhaseOneReply.Builder response_builder = DidaMeetingsPaxos.LongPhaseOneReply.newBuilder();
         response_builder.setInstance(instance);
         response_builder.setServerid(this.server_state.my_id);
         response_builder.setRequestballot(ballot);
@@ -68,7 +71,7 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
         response_builder.setValballot(valballot);
         response_builder.setMaxballot(maxballot);
 
-        DidaMeetingsPaxos.PhaseOneReply response = response_builder.build();
+        DidaMeetingsPaxos.LongPhaseOneReply response = response_builder.build();
 
         // System.out.println("Sending phase1 response: " + response);
         responseObserver.onNext(response);
