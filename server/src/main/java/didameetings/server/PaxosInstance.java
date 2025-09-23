@@ -13,7 +13,7 @@ public class PaxosInstance {
 
     public PaxosInstance() {
         this.instance_nb = 0;
-        this.command_id = 0;
+        this.command_id = -1;
         this.read_ballot = -1;
         this.write_ballot = -1;
         this.accept_ballot = -1;
@@ -24,7 +24,7 @@ public class PaxosInstance {
 
     public PaxosInstance(int id) {
         this.instance_nb = id;
-        this.command_id = 0;
+        this.command_id = -1;
         this.read_ballot = -1;
         this.write_ballot = -1;
         this.accept_ballot = -1;
@@ -35,7 +35,7 @@ public class PaxosInstance {
 
     public PaxosInstance(int id, int ballot) {
         this.instance_nb = id;
-        this.command_id = 0;
+        this.command_id = -1;
         this.read_ballot = ballot;
         this.write_ballot = -1;
         this.accept_ballot = -1;

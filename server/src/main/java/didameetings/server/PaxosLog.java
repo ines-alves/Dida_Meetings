@@ -27,7 +27,17 @@ public class PaxosLog {
         }
         return undecidedInstances;
     }
+    public synchronized ArrayList<PaxosInstance> getDecidedInstances() {
+        ArrayList<PaxosInstance> decidedInstances = new ArrayList<PaxosInstance>();
 
+        for (Integer key : log.keySet()) {
+            PaxosInstance entry = log.get(key);
+            if (entry.decided) {
+                decidedInstances.add(entry);
+            }
+        }
+        return decidedInstances;
+    }
     public synchronized PaxosInstance getEntry(int position) {
         return this.log.get(position);
     }
@@ -50,5 +60,13 @@ public class PaxosLog {
             this.log.put(position, entry);
         }
         return entry;
+    }
+    public synchronized PaxosInstance getInstanceByCommandId(int commandId) {
+        for (PaxosInstance instance : log.values()) {
+            if (instance.command_id == commandId) {
+                return instance;
+            }
+        }
+        return null; 
     }
 }

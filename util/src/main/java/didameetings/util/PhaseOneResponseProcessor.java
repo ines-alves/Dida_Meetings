@@ -36,6 +36,7 @@ public class PhaseOneResponseProcessor extends GenericResponseProcessor<DidaMeet
     private int lowBallot;
     private int highBallot;
     private  boolean promised;
+    private int maxInstancenum;
 
     public PhaseOneResponseProcessor(ConfigurationScheduler s, int l, int h){
         this.scheduler = s;

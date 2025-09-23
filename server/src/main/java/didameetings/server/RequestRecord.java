@@ -6,12 +6,14 @@ public class RequestRecord {
     private DidaMeetingsCommand request;
     private boolean response_available;
     private boolean response_value;
+    private boolean isDecided;
 
     public RequestRecord(int id) {
         this.requestid = id;
         this.request = null;
         this.response_available = false;
         this.response_value = false;
+        this.isDecided = false;
     }
 
     public RequestRecord(int id, DidaMeetingsCommand rq) {
@@ -19,6 +21,7 @@ public class RequestRecord {
         this.request = rq;
         this.response_available = false;
         this.response_value = false;
+        this.isDecided = false;
     }
 
     // Getter and Setter methods for all fields
@@ -43,7 +46,12 @@ public class RequestRecord {
         this.response_available = true;
         this.notifyAll();
     }
-
+    public boolean getIsDecided() {
+        return this.isDecided;
+    }
+    public void setIsDecided(boolean d) {
+        this.isDecided = d;
+    }
     public synchronized boolean waitForResponse() {
         while (this.response_available == false) {
             try {

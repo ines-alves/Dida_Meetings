@@ -90,14 +90,13 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
     @Override
     public void phasetwo(DidaMeetingsPaxos.PhaseTwoRequest request, StreamObserver<DidaMeetingsPaxos.PhaseTwoReply> responseObserver) {
         // System.out.println ("Receive phase two request: \n" + request);
-
         int instance = request.getInstance();
         int ballot = request.getRequestballot();
         int value = request.getValue();
         PaxosInstance entry = this.server_state.paxos_log.testAndSetEntry(instance);
         boolean accepted = false;
         int maxballot = ballot;
-
+        System.out.println("SERVER CURRENT BALLOT:" + this.server_state.getCurrentBallot());
         if (ballot >= this.server_state.getCurrentBallot()) {
             accepted = true;
             entry.command_id = value;
@@ -106,6 +105,9 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
         } else {
             maxballot = this.server_state.getCurrentBallot();
         }
+        System.out.println("VALUE REQUEST:" + value);
+        System.out.println("PENDING REQUESTS:" + this.server_state.req_history.getAllPending());
+        this.server_state.req_history.moveToInProcess(value);
 
         DidaMeetingsPaxos.PhaseTwoReply.Builder response_builder = DidaMeetingsPaxos.PhaseTwoReply.newBuilder();
         response_builder.setAccepted(accepted);
@@ -113,26 +115,26 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
         response_builder.setServerid(this.server_state.my_id);
         response_builder.setRequestballot(ballot);
         response_builder.setMaxballot(maxballot);
-
+        
         DidaMeetingsPaxos.PhaseTwoReply response = response_builder.build();
-
+        
         // System.out.println("Sending phase2 response: " + response);
         responseObserver.onNext(response);
         responseObserver.onCompleted();
-
+       
         // Notify learners
         if (accepted == true) {
-
+            
             Context ctx = Context.current().fork();
             ctx.run(() -> {
                 List<Integer> learners = this.server_state.scheduler.learners(ballot);
                 int n_targets = learners.size();
-
+                
                 DidaMeetingsPaxos.LearnRequest.Builder learn_request_builder = DidaMeetingsPaxos.LearnRequest.newBuilder();
                 learn_request_builder.setInstance(instance);
                 learn_request_builder.setValue(value);
                 learn_request_builder.setBallot(ballot);
-
+                
                 DidaMeetingsPaxos.LearnRequest learn_request = learn_request_builder.build();
 
                 // System.out.println("Sending learn request: \n" + learn_request);
@@ -167,9 +169,12 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
                 entry.n_accepts++;
                 System.out.println("Paxos learner for instance " + instance + " : number of accepts " + entry.n_accepts);
                 if (entry.n_accepts >= this.server_state.scheduler.quorum(ballot)) {
-                    System.out.println("Paxos learner: waking up the main loop");
                     this.server_state.updateCompletedBallot(ballot);
                     entry.decided = true;
+                    System.out.println("VALUE DECIDED = " + value);
+                    //System.out.println("IN PROCESS LIST = " + this.server_state.req_history.getAllInProcess());
+                    this.server_state.req_history.getIfInProcess(value).setIsDecided(true);
+                    System.out.println("Paxos learner: waking up the main loop");
                     this.server_state.main_loop.wakeup(1);
                 }
             } else if (ballot > entry.accept_ballot) {
