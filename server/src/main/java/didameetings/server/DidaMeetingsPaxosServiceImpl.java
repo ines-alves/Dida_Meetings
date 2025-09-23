@@ -96,18 +96,22 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
         PaxosInstance entry = this.server_state.paxos_log.testAndSetEntry(instance);
         boolean accepted = false;
         int maxballot = ballot;
-        System.out.println("SERVER CURRENT BALLOT:" + this.server_state.getCurrentBallot());
+        //System.out.println("SERVER CURRENT BALLOT:" + this.server_state.getCurrentBallot());
         if (ballot >= this.server_state.getCurrentBallot()) {
             accepted = true;
             entry.command_id = value;
             entry.write_ballot = ballot;
+            entry.accept_ballot = ballot; // FIXME is this right?
             this.server_state.setCurrentBallot(ballot);
         } else {
             maxballot = this.server_state.getCurrentBallot();
         }
         System.out.println("VALUE REQUEST:" + value);
         System.out.println("PENDING REQUESTS:" + this.server_state.req_history.getAllPending());
+    
+
         this.server_state.req_history.moveToInProcess(value);
+        
 
         DidaMeetingsPaxos.PhaseTwoReply.Builder response_builder = DidaMeetingsPaxos.PhaseTwoReply.newBuilder();
         response_builder.setAccepted(accepted);
@@ -140,7 +144,7 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
                 // System.out.println("Sending learn request: \n" + learn_request);
                 System.out.println("Paxos acceptor: going to notify learners for entry " + instance + " with timestamp " + ballot + " request = " + learn_request);
                 ArrayList<DidaMeetingsPaxos.LearnReply> learn_responses = new ArrayList<DidaMeetingsPaxos.LearnReply>();
-                GenericResponseCollector<DidaMeetingsPaxos.LearnReply> learn_collector = new GenericResponseCollector<DidaMeetingsPaxos.LearnReply>(learn_responses, n_targets);;
+                GenericResponseCollector<DidaMeetingsPaxos.LearnReply> learn_collector = new GenericResponseCollector<DidaMeetingsPaxos.LearnReply>(learn_responses, n_targets);
                 for (int i = 0; i < n_targets; i++) {
                     CollectorStreamObserver<DidaMeetingsPaxos.LearnReply> learn_observer = new CollectorStreamObserver<DidaMeetingsPaxos.LearnReply>(learn_collector);
                     this.server_state.async_stubs[learners.get(i)].learn(learn_request, learn_observer);

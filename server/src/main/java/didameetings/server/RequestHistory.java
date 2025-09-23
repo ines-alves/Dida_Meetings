@@ -30,7 +30,15 @@ public class RequestHistory {
             return null;
         }
     }
-
+    public synchronized RequestRecord getPendingAtIndex(int index) {
+        ArrayList<RequestRecord> list = new ArrayList<>(this.pending.values());
+        if (list.isEmpty()) {
+            return null;
+        }
+        // Ensure index wraps around so it's always valid
+        int safeIndex = index % list.size();
+        return list.get(safeIndex);
+    }
     public synchronized Collection<RequestRecord> getAllPending() {
        return new ArrayList<>(this.pending.values());
     }

@@ -52,7 +52,7 @@ public class MainLoop implements Runnable {
             */
 
             while (this.has_work != 0 || (this.server_state.getDebugMode() == 1)) { //FIXME check this later
-                System.out.println(" ---HERE 1--- ");
+                System.out.println(" ---WAITING FOR WORK--- ");
                 try {
                     //checkCrash();
                     //wait();
@@ -65,7 +65,8 @@ public class MainLoop implements Runnable {
 
             
             //PaxosInstance next_entry = this.server_state.paxos_log.testAndSetEntry(this.next_log_entry);
-            System.out.println("--- NEW THREAD FOR: " + next_log_entry + " ---");
+            this.next_log_entry++; // PPERIGO AQUI ESTAVA EM PHASE 1
+            System.out.println("--- NEW THREAD FOR: " + this.next_log_entry + " ---");
     
             new Thread(() -> {
                       multiPaxos(this.next_log_entry);   
@@ -178,18 +179,16 @@ public class MainLoop implements Runnable {
      public synchronized void multiPaxos(int entry_number) {
         System.out.println("ENTROU MULTIPAXOS");
         PaxosInstance next_entry = this.server_state.paxos_log.testAndSetEntry(entry_number);
-  
-        System.out.println(" ---HERE 2--- "); // maybe missing here some wait beacuse of has work idk see this 
+
         int ballot = this.server_state.getCurrentBallot();
         RequestRecord request_record = this.server_state.req_history.getFirstPending();
         if ((ballot > -1) && (request_record != null) && (this.server_state.scheduler.leader(ballot) == this.server_state.my_id)) { //only the leader executes
             System.out.println("I am the leader for request with id " + request_record.getId());
             int completed_ballot = this.server_state.getCompletedBallot();
-            System.out.println("This is the server current ballot = " + ballot + " and this is the completed ballot = " + completed_ballot);
+            //System.out.println("This is the server current ballot = " + ballot + " and this is the completed ballot = " + completed_ballot);
             
             if (ballot > completed_ballot) {
                 phase1(next_entry.instance_nb);        
-                this.next_log_entry++;
             }else{
 
                 int entryNum = this.server_state.paxos_log.length() - 1;
@@ -206,7 +205,7 @@ public class MainLoop implements Runnable {
         } 
         
         while (this.has_work != 1 || (this.server_state.getDebugMode() == 1)) { //FIXME check this later this is for the none leader nodes
-                System.out.println(" ---HERE 1--- ");
+                System.out.println(" ---WAITING FOR ACCEPT--- ");
                 try {
                     //checkCrash();
                     //wait();
@@ -218,17 +217,15 @@ public class MainLoop implements Runnable {
         }
         Collection<RequestRecord> inProcess_requests = this.server_state.req_history.getAllInProcess();
         for(RequestRecord inProcess_request : inProcess_requests){
-            System.out.println("OIIII");
             int numProcessed = this.server_state.req_history.processedSize() - 1;
             PaxosInstance request_entry = this.server_state.paxos_log.getInstanceByCommandId(inProcess_request.getId());
-            if(inProcess_request.getIsDecided() == true && (this.server_state.paxos_log.testAndSetEntry(numProcessed).instance_nb < request_entry.instance_nb)){
+            if(inProcess_request.getIsDecided() == true && (this.server_state.paxos_log.testAndSetEntry(numProcessed).instance_nb <= request_entry.instance_nb)){
                 System.out.println(" ---Processing instance--- " + inProcess_request.getId());
                 processEntry(request_entry);
                 
             }
         }
         this.has_work = -1;
-        //processEntry(next_entry);
      }
      
         
@@ -295,18 +292,20 @@ public class MainLoop implements Runnable {
        
         if (ballot_aborted == false) {
             Map<Integer, PhaseOneResponseProcessor.PhaseOneReplyArgs> undecidedMap = phase_one_processor.getUndecidedMap();
+            System.out.println("SIZE UNDECIDE INSTANCES: "+ undecidedMap.size());
+            int pendingIndex = 0;
             for(Integer instance : undecidedMap.keySet()){
                 int phase_two_value; 
                 PhaseOneResponseProcessor.PhaseOneReplyArgs args = undecidedMap.get(instance);
-                System.out.println("ARGS VALUE:" + args.value);
                 if (args.value == -1) {
-                    phase_two_value = this.server_state.req_history.getFirstPending().getId(); 
+                    phase_two_value = this.server_state.req_history.getPendingAtIndex(pendingIndex).getId(); 
+                    pendingIndex++;
                     //this.server_state.req_history.addToInProcess(phase_two_value, this.server_state.req_history.getIfPending(phase_two_value));
                 } else {
                     phase_two_value = args.value;
                 }
                 System.out.println("Starting phase 2 for instance " + instance + " with value " + phase_two_value);
-                new Thread(() -> phase2(entry_number, phase_two_value)).start();          
+                new Thread(() -> phase2(instance, phase_two_value)).start();          
             }
         }
     
@@ -331,7 +330,7 @@ public class MainLoop implements Runnable {
 
         PhaseTwoResponseProcessor phase_two_processor = new PhaseTwoResponseProcessor(quorum);
 
-        System.out.println("Calling peers with phase_two_request = " + phase_two_request);
+        //System.out.println("Calling peers with phase_two_request = " + phase_two_request);
         ArrayList<DidaMeetingsPaxos.PhaseTwoReply> phase_two_responses = new ArrayList<DidaMeetingsPaxos.PhaseTwoReply>();
         GenericResponseCollector<DidaMeetingsPaxos.PhaseTwoReply> phase_two_collector = new GenericResponseCollector<DidaMeetingsPaxos.PhaseTwoReply>(phase_two_responses, n_acceptors, phase_two_processor);
         for (int i = 0; i < n_acceptors; i++) {
@@ -353,7 +352,6 @@ public class MainLoop implements Runnable {
             this.server_state.setCompletedBallot(ballot);
             next_entry.command_id = phase_two_value;
             next_entry.decided = true;
-            //this.server_state.req_history.getIfInProcess(next_entry.command_id).setIsDecided(true);
         }
     }
 
