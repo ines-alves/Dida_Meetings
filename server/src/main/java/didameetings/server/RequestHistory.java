@@ -45,9 +45,14 @@ public class RequestHistory {
 
     public synchronized RequestRecord moveToInProcess(int requestid) {
         Integer id = new Integer(requestid);
-        RequestRecord record = this.pending.remove(id);
-        this.in_process.put(id, record);
-        return record;
+        RequestRecord recordTest = this.pending.get(id); //FIXME THIS SHOULDnt be here
+        if (recordTest == null) {
+            return null;
+        }else{
+            RequestRecord record = this.pending.remove(id);
+            this.in_process.put(id, record);
+            return record;
+        }
     }
 
     public synchronized RequestRecord getIfProcessed(int requestid) {
@@ -66,7 +71,10 @@ public class RequestHistory {
 
         record = this.pending.get(id);
         if (record == null) {
-            record = this.processed.get(id);
+            record = this.in_process.get(id);
+            if(record == null) {
+                record = this.processed.get(id);
+            }
         }
         return record;
     }

@@ -190,7 +190,7 @@ public class MainLoop implements Runnable {
             if (ballot > completed_ballot) {
                 phase1(next_entry.instance_nb);        
             }else{
-
+                System.out.println("---UNDECIDED LIST:" + this.server_state.paxos_log.getUndecidedInstances());
                 int entryNum = this.server_state.paxos_log.length() - 1;
                 for (RequestRecord pending_request : this.server_state.req_history.getAllPending()) {
                     int phase_two_value = pending_request.getId();
@@ -287,6 +287,7 @@ public class MainLoop implements Runnable {
                 this.server_state.setCurrentBallot(maxballot);
             }
         }
+        System.out.println("UNDECIDED LIST:" + this.server_state.paxos_log.getUndecidedInstances());
         phase_one_readballot = phase_one_processor.getHighballot();
         System.out.println("Paxos phase 1 ended with aborted = " + ballot_aborted + " and read ballot = " + phase_one_readballot);
        

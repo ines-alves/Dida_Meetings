@@ -19,8 +19,8 @@ public class PaxosLog {
     public synchronized ArrayList<PaxosInstance> getUndecidedInstances() {
         ArrayList<PaxosInstance> undecidedInstances = new ArrayList<PaxosInstance>();
 
-        for (Integer key : log.keySet()) {
-            PaxosInstance entry = log.get(key);
+        for (Integer key : this.log.keySet()) {
+            PaxosInstance entry = this.log.get(key);
             if (!entry.decided) {
                 undecidedInstances.add(entry);
             }

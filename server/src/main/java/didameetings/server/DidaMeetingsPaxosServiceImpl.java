@@ -90,6 +90,7 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
     @Override
     public void phasetwo(DidaMeetingsPaxos.PhaseTwoRequest request, StreamObserver<DidaMeetingsPaxos.PhaseTwoReply> responseObserver) {
         // System.out.println ("Receive phase two request: \n" + request);
+        System.out.println(" --- GRCP PHASE2 --- ");
         int instance = request.getInstance();
         int ballot = request.getRequestballot();
         int value = request.getValue();
@@ -103,6 +104,8 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
             entry.write_ballot = ballot;
             entry.accept_ballot = ballot; // FIXME is this right?
             this.server_state.setCurrentBallot(ballot);
+            this.server_state.req_history.moveToInProcess(value); //changed this to inside this if was in line 113
+        
         } else {
             maxballot = this.server_state.getCurrentBallot();
         }
@@ -110,7 +113,7 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
         System.out.println("PENDING REQUESTS:" + this.server_state.req_history.getAllPending());
     
 
-        this.server_state.req_history.moveToInProcess(value);
+        //this.server_state.req_history.moveToInProcess(value); //changed this to inside this if was in line 113
         
 
         DidaMeetingsPaxos.PhaseTwoReply.Builder response_builder = DidaMeetingsPaxos.PhaseTwoReply.newBuilder();
@@ -172,12 +175,13 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
             if (ballot == entry.accept_ballot) {
                 entry.n_accepts++;
                 System.out.println("Paxos learner for instance " + instance + " : number of accepts " + entry.n_accepts);
+                System.out.println("QUORUM SIZE = " + this.server_state.scheduler.quorum(ballot));
                 if (entry.n_accepts >= this.server_state.scheduler.quorum(ballot)) {
                     this.server_state.updateCompletedBallot(ballot);
                     entry.decided = true;
                     System.out.println("VALUE DECIDED = " + value);
                     //System.out.println("IN PROCESS LIST = " + this.server_state.req_history.getAllInProcess());
-                    this.server_state.req_history.getIfInProcess(value).setIsDecided(true);
+                    this.server_state.req_history.getIfExists(value).setIsDecided(true);
                     System.out.println("Paxos learner: waking up the main loop");
                     this.server_state.main_loop.wakeup(1);
                 }
