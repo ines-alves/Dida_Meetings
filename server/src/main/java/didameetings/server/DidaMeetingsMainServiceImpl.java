@@ -27,7 +27,7 @@ public class DidaMeetingsMainServiceImpl extends DidaMeetingsMainServiceGrpc.Did
         DidaMeetingsCommand command = new DidaMeetingsCommand(DidaMeetingsAction.OPEN, mid);
 
         // for debug purposes
-        System.out.println("Adding open request with reqid " + reqid + " to pending");
+        //System.out.println("Adding open request with reqid " + reqid + " to pending");
 
         RequestRecord request_record = new RequestRecord(reqid, command);
         this.server_state.req_history.addToPending(reqid, request_record);
@@ -57,7 +57,7 @@ public class DidaMeetingsMainServiceImpl extends DidaMeetingsMainServiceGrpc.Did
         DidaMeetingsCommand command = new DidaMeetingsCommand(DidaMeetingsAction.ADD, mid, pid);
 
         // for debug purposes
-        System.out.println("Adding add request with reqid " + reqid + " to pending");
+        //System.out.println("Adding add request with reqid " + reqid + " to pending");
 
         RequestRecord request_record = new RequestRecord(reqid, command);
         this.server_state.req_history.addToPending(reqid, request_record);
@@ -89,7 +89,7 @@ public class DidaMeetingsMainServiceImpl extends DidaMeetingsMainServiceGrpc.Did
         DidaMeetingsCommand command = new DidaMeetingsCommand(DidaMeetingsAction.TOPIC, mid, pid, topic);
 
         // for debug purposes
-        System.out.println("Adding topic request with reqid " + reqid + " to pending");
+        //System.out.println("Adding topic request with reqid " + reqid + " to pending");
 
         RequestRecord request_record = new RequestRecord(reqid, command);
         this.server_state.req_history.addToPending(reqid, request_record);
@@ -119,7 +119,7 @@ public class DidaMeetingsMainServiceImpl extends DidaMeetingsMainServiceGrpc.Did
         DidaMeetingsCommand command = new DidaMeetingsCommand(DidaMeetingsAction.CLOSE, mid);
 
         // for debug purposes
-        System.out.println("Adding close request with reqid " + reqid + " to pending");
+        //System.out.println("Adding close request with reqid " + reqid + " to pending");
 
         RequestRecord request_record = new RequestRecord(reqid, command);
         this.server_state.req_history.addToPending(reqid, request_record);
@@ -148,7 +148,7 @@ public class DidaMeetingsMainServiceImpl extends DidaMeetingsMainServiceGrpc.Did
         DidaMeetingsCommand command = new DidaMeetingsCommand(DidaMeetingsAction.DUMP);
 
         // for debug purposes
-        System.out.println("Adding dump request with reqid " + reqid + " to pending");
+        //System.out.println("Adding dump request with reqid " + reqid + " to pending");
 
         RequestRecord request_record = new RequestRecord(reqid, command);
         this.server_state.req_history.addToPending(reqid, request_record);

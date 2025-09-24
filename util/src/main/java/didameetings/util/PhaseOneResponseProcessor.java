@@ -82,7 +82,6 @@ public class PhaseOneResponseProcessor extends GenericResponseProcessor<DidaMeet
                 PhaseOneReplyArgs args = new PhaseOneReplyArgs(reply.getValue(), reply.getValballot());
                 if (reply.getValue() != -1 && reply.getValballot() < this.highBallot) {
                     this.lowBallot = reply.getValballot();
-                    //this.value = reply.getValue();
                 }
                 this.undecidedMap.put(reply.getInstance(), args);
             }

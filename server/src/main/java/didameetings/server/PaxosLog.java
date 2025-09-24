@@ -15,12 +15,12 @@ public class PaxosLog {
     public synchronized int length() {
         return this.log.size();
     }
-
+    public synchronized Hashtable<Integer, PaxosInstance> getLog() {
+        return this.log;
+    }
     public synchronized ArrayList<PaxosInstance> getUndecidedInstances() {
-        ArrayList<PaxosInstance> undecidedInstances = new ArrayList<PaxosInstance>();
-
-        for (Integer key : this.log.keySet()) {
-            PaxosInstance entry = this.log.get(key);
+        ArrayList<PaxosInstance> undecidedInstances = new ArrayList<>();
+        for (PaxosInstance entry : log.values()) {
             if (!entry.decided) {
                 undecidedInstances.add(entry);
             }
