@@ -39,18 +39,17 @@ public class MainLoop implements Runnable {
     public void run() {
         while (true) {
 
-            while (this.has_work != 0 || (this.server_state.getDebugMode() == 1)) { //FIXME check this later
+            while (this.has_work != 0 || (this.server_state.getDebugMode() == 1)) { //debug mode 1 = freeze
                 System.out.println(" ---WAITING FOR WORK--- ");
                 try {
-                    //checkCrash();
-                    //wait();
                     synchronized (this) {
+                        checkCrash();
                         wait(); // must hold monitor of `this`
                     }
                 } catch (InterruptedException e) {
                 }
             }
-
+            checkDelay();//FIXME this should be here ????
             this.next_log_entry++; 
             System.out.println("--- NEW THREAD FOR: " + this.next_log_entry + " ---");
 
@@ -64,17 +63,12 @@ public class MainLoop implements Runnable {
 
     public synchronized void wakeup(int code) {// 0 = client request, 2 = new ballot, 3 = debug
         this.has_work = code;
-        notifyAll(); // IS IT THO?
+        notifyAll();
     }
 
     public synchronized void learn() {
         this.do_learn = 0;
         notifyAll();
-    }
-
-    private long randomDelay() {
-        Random random = new Random();
-        return random.nextInt(3000); // Sleep for a random duration up to 3 seconds
     }
 
     public void checkDelay() {
@@ -83,14 +77,12 @@ public class MainLoop implements Runnable {
             System.out.println("SLOW MODE ON: APPLYING RANDOM DELAY");
             System.out.println("====================================");
             try {
-                Thread.sleep(10000); // Sleep for a random duration
-                System.out.println("====================================");
+                Thread.sleep(3000); // Sleep for 3 seconds
+                System.out.println("===========================");
                 System.out.println("SLOW MODE ON: WAKING UP !!!");
-                System.out.println("====================================");
-                //Thread.sleep(randomDelay()); // Sleep for a random duration
+                System.out.println("===========================");
             } catch (InterruptedException e) {
                 System.out.println("Thread was interrupted and woke up early!");
-                //Thread.currentThread().interrupt(); // Restore interrupt flag
             }
         }
     }
@@ -132,7 +124,7 @@ public class MainLoop implements Runnable {
 
         }
 
-        while (this.do_learn != 0 || (this.server_state.getDebugMode() == 1)) { 
+        while (this.do_learn != 0 || (this.server_state.getDebugMode() == 1)) { //debug mode 1 = freeze
             System.out.println(" ---WAITING FOR ACCEPT--- ");
             try {
                 //checkCrash();
@@ -147,6 +139,7 @@ public class MainLoop implements Runnable {
             try {
                 System.out.println(" ---WAITING FOR IN PROCESS--- ");
                 synchronized (this) {
+                    checkCrash();
                     wait(); // must hold monitor of `this`
                 }
             } catch (InterruptedException e) {
@@ -198,13 +191,13 @@ public class MainLoop implements Runnable {
 
         ArrayList<DidaMeetingsPaxos.LongPhaseOneReply> phase_one_responses = new ArrayList<DidaMeetingsPaxos.LongPhaseOneReply>();
         GenericResponseCollector<DidaMeetingsPaxos.LongPhaseOneReply> phase_one_collector = new GenericResponseCollector<DidaMeetingsPaxos.LongPhaseOneReply>(phase_one_responses, n_acceptors, phase_one_processor);
-
+        
+        //checkDelay(); we used this to test the phase 1 beahavior when the leader is slow and there is a new ballot so there os a promissed false 
         for (int i = 0; i < n_acceptors; i++) {
             CollectorStreamObserver<DidaMeetingsPaxos.LongPhaseOneReply> phase_one_observer = new CollectorStreamObserver<DidaMeetingsPaxos.LongPhaseOneReply>(phase_one_collector);
             this.server_state.async_stubs[acceptors.get(i)].longPhaseone(phase_one_request, phase_one_observer);
         }
 
-        checkDelay();
         phase_one_collector.waitUntilDone();
         if (phase_one_processor.getPromised() == false) {
             ballot_aborted = true;
@@ -281,7 +274,7 @@ public class MainLoop implements Runnable {
         System.out.println("Log entry with number " + next_entry.instance_nb + " has been decided with command id = " + next_entry.command_id);
         RequestRecord request_record = this.server_state.req_history.getIfInProcess(next_entry.command_id);
         // if I receive the paxos decision before the request
-        while (request_record == null || (this.server_state.getDebugMode() == 1)) {
+        while (request_record == null || (this.server_state.getDebugMode() == 1)) { //debug mode 1 = freeze
             System.out.println("Record not available!");
             try {
                 checkCrash();

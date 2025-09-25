@@ -23,25 +23,26 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
         this.server_state = state;
     }
 
-    @Override
-    public void longPhaseone(DidaMeetingsPaxos.PhaseOneRequest request, StreamObserver<DidaMeetingsPaxos.LongPhaseOneReply> responseObserver) {
-        
+    public void checkDelay() {
         if (this.server_state.getDebugMode() == 4) {
             System.out.println("====================================");
             System.out.println("SLOW MODE ON: APPLYING RANDOM DELAY");
+            System.out.println("THE DELAY IS INSIDE THE PAXOS MESSAGES");
             System.out.println("====================================");
             try {
-                Thread.sleep(10000); // Sleep for a random duration
-                System.out.println("====================================");
+                Thread.sleep(3000); // Sleep for 3 seconds
+                System.out.println("===========================");
                 System.out.println("SLOW MODE ON: WAKING UP !!!");
-                System.out.println("====================================");
-                //Thread.sleep(randomDelay()); // Sleep for a random duration
+                System.out.println("===========================");
             } catch (InterruptedException e) {
                 System.out.println("Thread was interrupted and woke up early!");
-                //Thread.currentThread().interrupt(); // Restore interrupt flag
             }
         }
-        
+    }
+
+    @Override
+    public void longPhaseone(DidaMeetingsPaxos.PhaseOneRequest request, StreamObserver<DidaMeetingsPaxos.LongPhaseOneReply> responseObserver) {
+        checkDelay();
 
         int instance = request.getInstance();
         int ballot = request.getRequestballot();
@@ -85,6 +86,8 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
 
     @Override
     public void phasetwo(DidaMeetingsPaxos.PhaseTwoRequest request, StreamObserver<DidaMeetingsPaxos.PhaseTwoReply> responseObserver) {
+        checkDelay();
+        
         int instance = request.getInstance();
         int ballot = request.getRequestballot();
         int value = request.getValue();
@@ -147,7 +150,8 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
 
     @Override
     public void learn(DidaMeetingsPaxos.LearnRequest request, StreamObserver<DidaMeetingsPaxos.LearnReply> responseObserver) {
-      
+        checkDelay();
+
         int instance = request.getInstance();
         int ballot = request.getBallot();
         int value = request.getValue();

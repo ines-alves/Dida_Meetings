@@ -53,34 +53,47 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
 
         int request_id = request.getReqid();
         this.server_state.setDebugMode(request.getMode());
-        if (this.server_state.getDebugMode() == 2) {
-            System.out.println("===============================");
-            System.out.println("inside unfreeze");
-            System.out.println("===============================");
-            try {
-                synchronized (this.server_state.main_loop) {
-                    this.server_state.main_loop.wakeup(0);
+        switch (this.server_state.getDebugMode()) {
+            case 1:
+                System.out.println("===========================");
+                System.out.println("DEBUG MODE - FREEZE ENABLED");
+                System.out.println("===========================");
+            case 2:
+                System.out.println("=====================");
+                System.out.println("DEBUG MODE - UNFREEZE");
+                System.out.println("=====================");
+                try {
+                    synchronized (this.server_state.main_loop) {
+                        this.server_state.main_loop.wakeup(0);
+                    }
+                } catch (Exception e) {
                 }
-            } catch (Exception e) {
-            }
-        }
-        if (this.server_state.getDebugMode() == 3) { //FIXME BOTH IFS ARE THE SAME MAYBE NOT NEEDED
-            try {
-                synchronized (this.server_state.main_loop) {
-                    this.server_state.main_loop.wakeup(3);
+                break;
+            case 3:
+                System.out.println("==================");
+                System.out.println("DEBUG MODE - CRASH");
+                System.out.println("==================");
+                try {
+                    synchronized (this.server_state.main_loop) {
+                        this.server_state.main_loop.wakeup(3);
+                    }
+                } catch (Exception e) {
                 }
-            } catch (Exception e) {
-            }
-        }
-        if (this.server_state.getDebugMode() == 4) {
-            System.out.println("===============================");
-            System.out.println("SLOW MODE ON - DELAYS ENABLED");
-            System.out.println("===============================");
-        }
-        if (this.server_state.getDebugMode() == 5) {
-            System.out.println("===============================");
-            System.out.println("SLOW MODE OFF - DELAYS DISABLED");
-            System.out.println("===============================");
+                break;
+            case 4:
+                System.out.println("=========================");
+                System.out.println("DEBUG MODE - SLOW MODE ON");
+                System.out.println("=========================");
+                break;
+            case 5:
+                System.out.println("==========================");
+                System.out.println("DEBUG MODE - SLOW MODE OFF");
+                System.out.println("==========================");
+                break;
+            default:
+                // No action for other modes
+                System.out.println("--- PANIC - UNKNOWN DEBUG MODE ---");
+                break;
         }
 
         // for debug purposes
