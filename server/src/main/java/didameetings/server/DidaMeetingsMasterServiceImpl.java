@@ -58,6 +58,7 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
                 System.out.println("===========================");
                 System.out.println("DEBUG MODE - FREEZE ENABLED");
                 System.out.println("===========================");
+                break;
             case 2:
                 System.out.println("=====================");
                 System.out.println("DEBUG MODE - UNFREEZE");

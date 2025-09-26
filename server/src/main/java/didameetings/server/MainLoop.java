@@ -49,7 +49,7 @@ public class MainLoop implements Runnable {
                 } catch (InterruptedException e) {
                 }
             }
-            checkDelay();//FIXME this should be here ????
+            checkDelay();
             this.next_log_entry++; 
             System.out.println("--- NEW THREAD FOR: " + this.next_log_entry + " ---");
 
@@ -99,7 +99,7 @@ public class MainLoop implements Runnable {
     public synchronized void multiPaxos(int entry_number) {
         System.out.println("ENTROU MULTIPAXOS: " + entry_number);
         PaxosInstance next_entry = this.server_state.paxos_log.testAndSetEntry(entry_number);
-        System.out.println("PENDING REQUESTS:" + this.server_state.req_history.getAllPending());
+        //System.out.println("PENDING REQUESTS:" + this.server_state.req_history.getAllPending());
 
         int ballot = this.server_state.getCurrentBallot();
         RequestRecord request_record = this.server_state.req_history.getFirstPending();
@@ -110,8 +110,8 @@ public class MainLoop implements Runnable {
             if (ballot > completed_ballot) {
                 phase1(next_entry.instance_nb);
             } else {
-                System.out.println("----PAXOS LOG:" + this.server_state.paxos_log.getLog());
-                System.out.println("---UNDECIDED LIST:" + this.server_state.paxos_log.getUndecidedInstances());
+                //System.out.println("----PAXOS LOG:" + this.server_state.paxos_log.getLog());
+                //System.out.println("---UNDECIDED LIST:" + this.server_state.paxos_log.getUndecidedInstances());
                 int entryNum = this.server_state.paxos_log.length();
                 for (RequestRecord pending_request : this.server_state.req_history.getAllPending()) {
                     int phase_two_value = pending_request.getId();
@@ -127,10 +127,8 @@ public class MainLoop implements Runnable {
         while (this.do_learn != 0 || (this.server_state.getDebugMode() == 1)) { //debug mode 1 = freeze
             System.out.println(" ---WAITING FOR ACCEPT--- ");
             try {
-                //checkCrash();
-                //wait();
                 synchronized (this) {
-                    wait(); // must hold monitor of `this`
+                    wait();
                 }
             } catch (InterruptedException e) {
             }
@@ -140,18 +138,18 @@ public class MainLoop implements Runnable {
                 System.out.println(" ---WAITING FOR IN PROCESS--- ");
                 synchronized (this) {
                     checkCrash();
-                    wait(); // must hold monitor of `this`
+                    wait();
                 }
             } catch (InterruptedException e) {
             }
         }
         Collection<RequestRecord> inProcess_requests = this.server_state.req_history.getAllInProcess();
-        System.out.println("IN PROCESS LIST = " + inProcess_requests);
+        //System.out.println("IN PROCESS LIST = " + inProcess_requests);
         for (RequestRecord inProcess_request : inProcess_requests) {
             
             PaxosInstance request_entry = this.server_state.paxos_log.getInstanceByCommandId(inProcess_request.getId());
-            System.out.println("LAST PROCESSED:" + this.lastProcessed);
-            System.out.println("REQUEST ENTRY INSTANCE:" + request_entry.instance_nb);
+            //System.out.println("LAST PROCESSED:" + this.lastProcessed);
+            //System.out.println("REQUEST ENTRY INSTANCE:" + request_entry.instance_nb);
             if (inProcess_request.getIsDecided() == true && (this.lastProcessed == (request_entry.instance_nb - 1))) {
                 System.out.println(" ---Processing instance--- " + inProcess_request.getId());
                 processEntry(request_entry);
