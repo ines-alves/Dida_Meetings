@@ -49,32 +49,35 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
         System.out.println("LONG PHASE 1 REQUEST - INSTANCE: " + instance );
         PaxosInstance entry = this.server_state.paxos_log.testAndSetEntry(instance, ballot);
         boolean promised = false;
+        ArrayList<DidaMeetingsPaxos.PhaseOneReply> longPhaseOneReply = new ArrayList<DidaMeetingsPaxos.PhaseOneReply>();
+        DidaMeetingsPaxos.PhaseOneReply.Builder instances_reponse_builder = DidaMeetingsPaxos.PhaseOneReply.newBuilder();
  
+        int maxballot = this.server_state.getCurrentBallot();
+
         if (ballot >= this.server_state.getCurrentBallot()) {
             promised = true;
             this.server_state.setCurrentBallot(ballot);
             entry.read_ballot = ballot;
-        }
-
-        int maxballot = this.server_state.getCurrentBallot();
-
-        ArrayList<PaxosInstance> undecidedInstances = this.server_state.paxos_log.getUndecidedInstances();
-        ArrayList<DidaMeetingsPaxos.PhaseOneReply> longPhaseOneReply = new ArrayList<DidaMeetingsPaxos.PhaseOneReply>();
-        for (PaxosInstance undecidedInstance : undecidedInstances) {
-            
-
-            DidaMeetingsPaxos.PhaseOneReply.Builder undecided_response_builder = DidaMeetingsPaxos.PhaseOneReply.newBuilder();
-            undecided_response_builder.setInstance(undecidedInstance.instance_nb);
-            undecided_response_builder.setServerid(this.server_state.my_id);
-            undecided_response_builder.setRequestballot(ballot);
-            undecided_response_builder.setPromised(promised);
-            undecided_response_builder.setValue(undecidedInstance.command_id);
-            undecided_response_builder.setValballot(undecidedInstance.write_ballot);
-            undecided_response_builder.setMaxballot(maxballot); 
-
-            DidaMeetingsPaxos.PhaseOneReply undecided_response = undecided_response_builder.build();
+            ArrayList<PaxosInstance> instances = this.server_state.paxos_log.getInstancesFrom(instance);
+            for (PaxosInstance paxos_instance : instances) {
+                instances_reponse_builder.setInstance(paxos_instance.instance_nb);
+                instances_reponse_builder.setServerid(this.server_state.my_id);
+                instances_reponse_builder.setRequestballot(ballot);
+                instances_reponse_builder.setPromised(promised);
+                instances_reponse_builder.setValue(paxos_instance.command_id);
+                instances_reponse_builder.setValballot(paxos_instance.write_ballot);
+                instances_reponse_builder.setMaxballot(maxballot); 
+                DidaMeetingsPaxos.PhaseOneReply undecided_response = instances_reponse_builder.build();
+                longPhaseOneReply.add(undecided_response);
+    
+            }
+        } else {
+            instances_reponse_builder.setMaxballot(maxballot); 
+            instances_reponse_builder.setPromised(promised);
+            DidaMeetingsPaxos.PhaseOneReply undecided_response = instances_reponse_builder.build();
             longPhaseOneReply.add(undecided_response);
         }
+        
 
         DidaMeetingsPaxos.LongPhaseOneReply.Builder response_builder = DidaMeetingsPaxos.LongPhaseOneReply.newBuilder();
         response_builder.addAllLongPhaseOne(longPhaseOneReply);

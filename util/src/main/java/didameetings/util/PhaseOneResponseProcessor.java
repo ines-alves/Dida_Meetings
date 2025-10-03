@@ -9,15 +9,7 @@ import didameetings.DidaMeetingsPaxos;
 import didameetings.configs.ConfigurationScheduler;
 
 public class PhaseOneResponseProcessor extends GenericResponseProcessor<DidaMeetingsPaxos.LongPhaseOneReply>{
-    /*
-     * 
-     private ConfigurationScheduler scheduler;
-     private boolean promised;
-     private int value;
-     private int low_ballot;
-     private int high_ballot;
-     private int responses;
-     */
+
     public static class PhaseOneReplyArgs {
         public int value;
         public int valballot;
@@ -32,15 +24,14 @@ public class PhaseOneResponseProcessor extends GenericResponseProcessor<DidaMeet
         
     }
     private ConfigurationScheduler scheduler;
-    private Map<Integer, PhaseOneReplyArgs> undecidedMap;
+    private Map<Integer, PhaseOneReplyArgs> instancesMap;
     private int lowBallot;
     private int highBallot;
     private  boolean promised;
-    private int maxInstancenum;
 
     public PhaseOneResponseProcessor(ConfigurationScheduler s, int l, int h){
         this.scheduler = s;
-        this.undecidedMap = new HashMap<>();
+        this.instancesMap = new HashMap<>();
         this.promised = true;
         this.lowBallot = l;
         this.highBallot = h;
@@ -51,12 +42,12 @@ public class PhaseOneResponseProcessor extends GenericResponseProcessor<DidaMeet
     }
 
     public int getValue(int instance) {
-        PhaseOneReplyArgs arg = undecidedMap.get(instance);
+        PhaseOneReplyArgs arg = instancesMap.get(instance);
         return  arg.value;
     }
 
     public int getValballot(int instance) {
-        PhaseOneReplyArgs arg = undecidedMap.get(instance);
+        PhaseOneReplyArgs arg = instancesMap.get(instance);
         return  arg.valballot;
     }
 
@@ -66,11 +57,11 @@ public class PhaseOneResponseProcessor extends GenericResponseProcessor<DidaMeet
     public int getHighballot() {
         return this.highBallot;
     }
-    public Map<Integer, PhaseOneReplyArgs> getUndecidedMap() {
-        return this.undecidedMap;
+    public Map<Integer, PhaseOneReplyArgs> getInstancesMap() {
+        return this.instancesMap;
     }
     @Override
-     public synchronized boolean onNext(ArrayList<DidaMeetingsPaxos.LongPhaseOneReply> all_responses, DidaMeetingsPaxos.LongPhaseOneReply last_response) {
+    public synchronized boolean onNext(ArrayList<DidaMeetingsPaxos.LongPhaseOneReply> all_responses, DidaMeetingsPaxos.LongPhaseOneReply last_response) {
         List<DidaMeetingsPaxos.PhaseOneReply> replies = last_response.getLongPhaseOneList();
 
         for (DidaMeetingsPaxos.PhaseOneReply reply : replies) {
@@ -78,19 +69,20 @@ public class PhaseOneResponseProcessor extends GenericResponseProcessor<DidaMeet
                 this.promised = false;
                 this.highBallot = Math.max(this.highBallot, reply.getMaxballot());
                 break;
-            } else {
+            } else if (this.instancesMap.get(reply.getInstance()) == null || reply.getValballot() > this.instancesMap.get(reply.getInstance()).valballot) {
+                // If it's the first time we see this instance or if this reply has a higher valballot than the stored one
                 PhaseOneReplyArgs args = new PhaseOneReplyArgs(reply.getValue(), reply.getValballot());
-                if (reply.getValue() != -1 && reply.getValballot() < this.highBallot) {
-                    this.lowBallot = reply.getValballot();
-                }
-                this.undecidedMap.put(reply.getInstance(), args);
-            }
+                this.instancesMap.put(reply.getInstance(), args);
+            } 
+                
         }
-
-        if (all_responses.size() < 2) {
+        if(all_responses.size() < 2) {
             return false;
+        } else {
+            return true;
         }
-        return this.promised;
     }
-    
+
 }
+    
+

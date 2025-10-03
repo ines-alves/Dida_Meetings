@@ -1,5 +1,6 @@
 package didameetings.server;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -160,7 +161,7 @@ public class MainLoop implements Runnable {
         this.do_learn = -1;
     }
 
-    public synchronized void phase1(int entry_number) { 
+    public synchronized Map<Integer, PhaseOneResponseProcessor.PhaseOneReplyArgs> phase1(int entry_number) { 
         int ballot = this.server_state.getCurrentBallot(); 
         int completed_ballot = this.server_state.getCompletedBallot();
 
@@ -206,25 +207,11 @@ public class MainLoop implements Runnable {
         }
         phase_one_readballot = phase_one_processor.getHighballot();
         System.out.println("Paxos phase 1 ended with aborted = " + ballot_aborted + " and read ballot = " + phase_one_readballot);
-
         if (ballot_aborted == false) {
-            Map<Integer, PhaseOneResponseProcessor.PhaseOneReplyArgs> undecidedMap = phase_one_processor.getUndecidedMap();
-            //System.out.println("SIZE UNDECIDE INSTANCES: " + undecidedMap.size());
-            int pendingIndex = 0;
-            for (Integer instance : undecidedMap.keySet()) {
-                int phase_two_value;
-                PhaseOneResponseProcessor.PhaseOneReplyArgs args = undecidedMap.get(instance);
-                if (args.value == -1) {
-                    phase_two_value = this.server_state.req_history.getPendingAtIndex(pendingIndex).getId();
-                    pendingIndex++;
-                } else {
-                    phase_two_value = args.value;
-                }
-                System.out.println("Starting phase 2 for instance " + instance + " with value " + phase_two_value);
-                new Thread(() -> phase2(instance, phase_two_value)).start();
-            }
+            return phase_one_processor.getInstancesMap();
+            
         }
-
+        return null;
     }
 
     public synchronized void phase2(int entry_number, int phase_two_value) { 

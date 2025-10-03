@@ -18,6 +18,16 @@ public class PaxosLog {
     public synchronized Hashtable<Integer, PaxosInstance> getLog() {
         return this.log;
     }
+    public synchronized ArrayList<PaxosInstance> getInstancesFrom(int fromIndex) {
+        ArrayList<PaxosInstance> result = new ArrayList<>();
+
+        for (Integer key : log.keySet()) {
+            if (key >= fromIndex) {
+                result.add(log.get(key));
+            }
+        }
+        return result;
+    }
     public synchronized ArrayList<PaxosInstance> getUndecidedInstances() {
         ArrayList<PaxosInstance> undecidedInstances = new ArrayList<>();
         for (PaxosInstance entry : log.values()) {
