@@ -25,7 +25,9 @@ public class RequestHistory {
     public synchronized RequestRecord getFirstPending() {
         Enumeration<Integer> pendingids = this.pending.keys();
         if (pendingids.hasMoreElements()) {
-            return this.pending.get(pendingids.nextElement()); 
+            RequestRecord request_record = this.pending.get(pendingids.nextElement());
+            this.moveToInProcess(request_record.getId());
+            return request_record;
         }else {
             return null;
         }
@@ -45,14 +47,32 @@ public class RequestHistory {
 
     public synchronized RequestRecord moveToInProcess(int requestid) {
         Integer id = new Integer(requestid);
+        while (this.pending.get(id) == null && this.in_process.get(id) == null) { //FIXME maybe use getIfexists
+            try {
+                System.out.println(" --- > REQUEST NOT FOUND IN PENDING: " + requestid);
+                wait();
+            } catch (InterruptedException e) {
+                System.out.println("Interrupted while waiting for request to be added to pending: " + e);
+            }
+        }
+        if (this.pending.get(id) != null) {
+            RequestRecord record = this.pending.remove(id);
+            this.in_process.put(id, record);
+            return record;
+        } else {
+            return null;
+        }
+        /*
         RequestRecord recordTest = this.pending.get(id); //FIXME THIS SHOULDnt be here
         if (recordTest == null) {
+            System.out.println(" --- > REQUEST NOT FOUND IN PENDING: " + requestid);
             return null;
         }else{
             RequestRecord record = this.pending.remove(id);
             this.in_process.put(id, record);
             return record;
         }
+        */
     }
 
     public synchronized RequestRecord getIfProcessed(int requestid) {
@@ -65,6 +85,7 @@ public class RequestHistory {
     public synchronized Collection<RequestRecord> getAllInProcess() {
         return new ArrayList<>(this.in_process.values());
     }
+
     public synchronized RequestRecord getIfExists(int requestid) {
         RequestRecord record;
         Integer id = new Integer(requestid);
@@ -83,6 +104,14 @@ public class RequestHistory {
         Integer id = new Integer(requestid);
 
         this.pending.put(id, record);
+        notifyAll(); //FIXME THIS CAN BE SO DANGEROUS!!!
+    }
+
+    public synchronized void moveToPending(int requestid){
+        Integer id = new Integer(requestid);
+        RequestRecord record = this.in_process.remove(id);
+        this.pending.put(id, record);
+
     }
 
     public synchronized RequestRecord moveToProcessed(int requestid) {

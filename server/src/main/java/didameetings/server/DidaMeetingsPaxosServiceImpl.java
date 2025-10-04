@@ -170,9 +170,12 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
                 if (entry.n_accepts >= this.server_state.scheduler.quorum(ballot)) {
                     this.server_state.updateCompletedBallot(ballot);
                     entry.decided = true;
-                    System.out.println("VALUE DECIDED = " + value);
                     this.server_state.req_history.getIfExists(value).setIsDecided(true);
-                    this.server_state.main_loop.learn();
+                    if (this.server_state.req_history.getIfProcessed(value) == null) {
+                        System.out.println("VALUE DECIDED = " + value);
+                        this.server_state.main_loop.processEntry(entry); //is this a good idea? like it seems legit but idk m i crazy ?
+                        //this.server_state.main_loop.learn();
+                    }
                 }
             } else if (ballot > entry.accept_ballot) {
                 System.out.println("Paxos learner for instance " + instance + " : resetting ");
