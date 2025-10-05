@@ -55,7 +55,6 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
             checkDelay();
             this.next_log_entry++; 
             System.out.println("--- NEW RUN FOR: " + this.next_log_entry + " ---");
-            //System.out.println("PENDING REQUESTS:" + this.server_state.req_history.getAllPending());
             
             int ballot = this.server_state.getCurrentBallot();
             if ((ballot > -1) && (this.server_state.scheduler.leader(ballot) == this.server_state.my_id)) { //only the leader executes
@@ -83,7 +82,6 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
 
     public synchronized void phase2Loop(){
         while (!this.ballot_aborted) {
-            System.out.println("PENDING REQUESTS:" + this.server_state.req_history.getAllPending());
             for (RequestRecord pending_request : this.server_state.req_history.getAllPending()) {
                 int phase_two_value = pending_request.getId();
                 System.out.println("PHASE 2 LOOP" + this.next_log_entry + "PHASE 2 VAL:" + phase_two_value);
@@ -211,10 +209,7 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
         int ballot = this.server_state.getCurrentBallot(); 
         List<Integer> acceptors = this.server_state.scheduler.acceptors(ballot); 
         int n_acceptors = acceptors.size();
-        boolean ballot_aborted = false;
         int quorum = this.server_state.scheduler.quorum(ballot);
-
-        PaxosInstance next_entry = this.server_state.paxos_log.testAndSetEntry(entry_number);
 
         System.out.println("Going to run paxos phase 2");
 
@@ -239,7 +234,15 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
         //System.out.println(" --- > IN PROCESS REQUESTS:" + this.server_state.req_history.getAllInProcess());
         System.out.println("Log entry with number " + next_entry.instance_nb + " has been decided with command id = " + next_entry.command_id);
         RequestRecord request_record = this.server_state.req_history.getIfInProcess(next_entry.command_id); //FIXME i dont think we still need the while loop here
-       
+
+        while (this.lastProcessed != next_entry.instance_nb - 1) { //debug mode 1 = freeze
+            System.out.println("Waiting to process entry " + next_entry.instance_nb + " because last processed is " + this.lastProcessed);
+            try {
+                checkCrash();
+                wait();
+            } catch (InterruptedException e) {
+            }
+        }
         // if I receive the paxos decision before the request
         while (request_record == null || (this.server_state.getDebugMode() == 1)) { //debug mode 1 = freeze
             System.out.println("Record not available!");
@@ -287,5 +290,7 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
         System.out.println("Setting response for command with id = " + next_entry.command_id + " with result = " + result);
         request_record.setResponse(result);
         this.server_state.req_history.moveToProcessed(request_record.getId());
+        this.lastProcessed = next_entry.instance_nb;
+        notifyAll();
     }
 }
