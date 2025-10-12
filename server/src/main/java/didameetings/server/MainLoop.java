@@ -33,7 +33,7 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
     public MainLoop(DidaMeetingsServerState state) {
         this.server_state = state;
         this.has_work = -1;
-        this.next_log_entry = 1; //FIXME changed this to 1
+        this.next_log_entry = 0;
         this.lastProcessed = 0;
         this.ballot_aborted = false;
     }
@@ -46,6 +46,7 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
             
             int ballot = this.server_state.getCurrentBallot();
             if ((ballot > -1) && (this.server_state.scheduler.leader(ballot) == this.server_state.my_id)) { //only the leader executes
+                this.next_log_entry = this.lastProcessed + 1;
                 //int completed_ballot = this.server_state.getCompletedBallot();
                 Map<Integer, PhaseOneResponseProcessor.PhaseOneReplyArgs> phase1Results = phase1(lastProcessed);//FIXME changed this to last processed
                 for (Map.Entry<Integer, PhaseOneResponseProcessor.PhaseOneReplyArgs> entry : phase1Results.entrySet()) {
@@ -58,12 +59,15 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
                 }
                 System.out.println("Completed ballot set to " + ballot);
                 this.server_state.setCompletedBallot(ballot);
+                
                 //FIXME add here a check to see if its the first ballot cause it might have not been send ballot 0 0 and it will wait forever for activation
-                boolean activation = this.server_state.waitForActivation();
-                System.out.println(" --- ACTIVATION REPLY " + activation + " --- ");
-                if (!activation) {
-                    this.has_work = -1;
-                    continue;
+                if (ballot != 0) {//FIXME i dont like this if 
+                    boolean activation = this.server_state.waitForActivation();
+                    System.out.println(" --- ACTIVATION REPLY " + activation + " --- ");
+                    if (!activation) {
+                        this.has_work = -1;
+                        continue;
+                    }
                 }
                 
                 // this is done in order to process any past replys from phase 1 that were not processed because they didnt have a value
@@ -83,7 +87,7 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
     }
 
     public synchronized void phase2Loop(){
-        while (!this.ballot_aborted) {
+        while (!this.ballot_aborted && (this.server_state.scheduler.leader(this.server_state.getCurrentBallot()) == this.server_state.my_id)) {
             for (RequestRecord pending_request : this.server_state.req_history.getAllPending()) {
                 int phase_two_value = pending_request.getId();
                 System.out.println("PHASE 2 LOOP " + this.next_log_entry + " PHASE 2 VAL: " + phase_two_value);
@@ -93,7 +97,7 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
             this.has_work = -1;
             waitForWork();
         }
- 
+        this.ballot_aborted = false;
     }
 
     public synchronized void wakeup(int code) {// 0 = client request, 2 = new ballot, 3 = debug
@@ -158,7 +162,7 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
         int quorum = this.server_state.scheduler.quorum(ballot);
         int n_acceptors = acceptors.size();
 
-        boolean ballot_aborted = false; //FIXME shouldnt this be this.ballot_aborted ?
+        boolean ballot_aborted = false;
         int phase_one_readballot = -1;
 
         System.out.println("Going to run paxos phase 1");

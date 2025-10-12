@@ -31,6 +31,7 @@ public class PhaseTwoResponseProcessor extends GenericResponseProcessor<DidaMeet
     public synchronized boolean onNext(ArrayList<DidaMeetingsPaxos.PhaseTwoReply> all_responses, DidaMeetingsPaxos.PhaseTwoReply last_response) {
         this.responses++;
         if (last_response.getAccepted() == false) {
+            System.out.println(" --- PHASE TWO REJECTED --- ");//FIXME this is never hapening
             this.accepted = false;
             if (last_response.getMaxballot() > this.maxballot) {
                 this.maxballot = last_response.getMaxballot();

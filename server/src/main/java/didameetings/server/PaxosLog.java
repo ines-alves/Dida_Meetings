@@ -22,7 +22,7 @@ public class PaxosLog {
         ArrayList<PaxosInstance> result = new ArrayList<>();
 
         for (Integer key : log.keySet()) {
-            if (key >= fromIndex) {
+            if (key > fromIndex) {
                 result.add(log.get(key));
             }
         }

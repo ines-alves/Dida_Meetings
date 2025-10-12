@@ -41,7 +41,7 @@ public class DidaMeetingsServerState {
         this.my_id = myself;
         this.debug_mode = 0;
         this.current_ballot = 0;
-        this.completed_ballot = -1;
+        this.completed_ballot = 0;
         this.activation = false;
         this.activationReceived = false;
         this.req_history = new RequestHistory();
