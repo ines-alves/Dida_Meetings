@@ -21,7 +21,6 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
     DidaMeetingsServerState server_state;
 
     private int has_work;
-    private int do_learn;
     private boolean ballot_aborted;
     private int next_log_entry;
     private int lastProcessed;
@@ -34,74 +33,67 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
     public MainLoop(DidaMeetingsServerState state) {
         this.server_state = state;
         this.has_work = -1;
-        this.next_log_entry = 0;
+        this.next_log_entry = 1; //FIXME changed this to 1
         this.lastProcessed = 0;
-        this.do_learn = -1;
         this.ballot_aborted = false;
     }
 
     public void run() {
         while (true) {
-            while (this.has_work != 0 || (this.server_state.getDebugMode() == 1)) { //debug mode 1 = freeze
-                System.out.println(" ---WAITING FOR WORK--- ");
-                try {
-                    synchronized (this) {
-                        checkCrash();
-                        wait(); // must hold monitor of `this`
-                    }
-                } catch (InterruptedException e) {
-                }
-            }
+            waitForWork();
+            
             checkDelay();
-            this.next_log_entry++; 
-            System.out.println("--- NEW RUN FOR: " + this.next_log_entry + " ---");
             
             int ballot = this.server_state.getCurrentBallot();
             if ((ballot > -1) && (this.server_state.scheduler.leader(ballot) == this.server_state.my_id)) { //only the leader executes
                 //int completed_ballot = this.server_state.getCompletedBallot();
-                Map<Integer, PhaseOneResponseProcessor.PhaseOneReplyArgs> phase1Results = phase1(this.next_log_entry);//FIXME what about a new leader that has a bigger log entry but hasnt commited the paxos yet
-                int phase_two_value = -1;
+                Map<Integer, PhaseOneResponseProcessor.PhaseOneReplyArgs> phase1Results = phase1(lastProcessed);//FIXME changed this to last processed
+                for (Map.Entry<Integer, PhaseOneResponseProcessor.PhaseOneReplyArgs> entry : phase1Results.entrySet()) {
+                    System.out.println("Instance: " + entry.getKey() + ", Value: " + entry.getValue().value + ", Valballot: " + entry.getValue().valballot);
+                    if (entry.getValue().value != -1) {
+                        System.out.println("PHASE 2 FOR PREVIOUS VALUES " + this.next_log_entry + " PHASE 2 VAL: " + entry.getValue().value);
+                        phase2(entry.getKey(), entry.getValue().value);
+                        this.next_log_entry++;
+                    }
+                }
+                System.out.println("Completed ballot set to " + ballot);
+                this.server_state.setCompletedBallot(ballot);
+                //FIXME add here a check to see if its the first ballot cause it might have not been send ballot 0 0 and it will wait forever for activation
+                boolean activation = this.server_state.waitForActivation();
+                System.out.println(" --- ACTIVATION REPLY " + activation + " --- ");
+                if (!activation) {
+                    this.has_work = -1;
+                    continue;
+                }
+                
+                // this is done in order to process any past replys from phase 1 that were not processed because they didnt have a value
                 for (Map.Entry<Integer, PhaseOneResponseProcessor.PhaseOneReplyArgs> entry : phase1Results.entrySet()) {
                     System.out.println("Instance: " + entry.getKey() + ", Value: " + entry.getValue().value + ", Valballot: " + entry.getValue().valballot);
                     if (entry.getValue().value == -1) {
-                        phase_two_value = this.server_state.req_history.getFirstPending().getId();//FIXME imagine if he proposes a value from pending that is already in the log he hasnt just moved it in to processing
-                    } else {
-                        phase_two_value = entry.getValue().value;
+                        System.out.println("THIS LOG ENTRY HAD NO VALUE PROPOSING " + this.server_state.req_history.getFirstPending().getId());
+                        phase2(entry.getKey(), this.server_state.req_history.getFirstPending().getId());
+                        this.next_log_entry++;
                     }
-
-                    phase2(entry.getKey(), phase_two_value);
-                    this.next_log_entry++;
-                    }
-
+                }
+                
                 phase2Loop();
             }
-            this.has_work = -1; //FIXME necessary ?
+            this.has_work = -1;
         }
     }
-
 
     public synchronized void phase2Loop(){
         while (!this.ballot_aborted) {
             for (RequestRecord pending_request : this.server_state.req_history.getAllPending()) {
                 int phase_two_value = pending_request.getId();
-                System.out.println("PHASE 2 LOOP" + this.next_log_entry + "PHASE 2 VAL:" + phase_two_value);
+                System.out.println("PHASE 2 LOOP " + this.next_log_entry + " PHASE 2 VAL: " + phase_two_value);
                 phase2(this.next_log_entry , phase_two_value);
                 this.next_log_entry++; 
             }
             this.has_work = -1;
-            //FIXME Diogo you can do better do a function for this part
-            while (this.has_work != 0 || (this.server_state.getDebugMode() == 1)) { //debug mode 1 = freeze
-                System.out.println(" ---WAITING FOR WORK--- ");
-                try {
-                    synchronized (this) {
-                        checkCrash();
-                        wait(); // must hold monitor of `this`
-                    }
-                } catch (InterruptedException e) {
-                }
-            }
- 
+            waitForWork();
         }
+ 
     }
 
     public synchronized void wakeup(int code) {// 0 = client request, 2 = new ballot, 3 = debug
@@ -109,11 +101,17 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
         notifyAll();
     }
 
-    public synchronized void learn() {
-        this.do_learn = 0;
-        notifyAll();
-    }
+    public synchronized void waitForWork() {
+        while (this.has_work != 0 || (this.server_state.getDebugMode() == 1)) { //debug mode 1 = freeze
+            System.out.println(" ---WAITING FOR WORK--- ");
+            try { //FIXME this had a syncornized block around it but i mean the function is already synchronized now
+                checkCrash();
+                wait();
 
+            } catch (InterruptedException e) {
+            }
+        }
+    }
 
     @Override
     public void onPhaseTwoAborted(int maxballot, int instance) {
@@ -156,11 +154,11 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
         int ballot = this.server_state.getCurrentBallot(); 
         int completed_ballot = this.server_state.getCompletedBallot();
 
-        List<Integer> acceptors = this.server_state.scheduler.acceptors(ballot);
+        List<Integer> acceptors = this.server_state.scheduler.acceptors(completed_ballot);
         int quorum = this.server_state.scheduler.quorum(ballot);
         int n_acceptors = acceptors.size();
 
-        boolean ballot_aborted = false;
+        boolean ballot_aborted = false; //FIXME shouldnt this be this.ballot_aborted ?
         int phase_one_readballot = -1;
 
         System.out.println("Going to run paxos phase 1");
@@ -171,7 +169,7 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
         phase_one_request_builder.setRequestballot(ballot);
 
         DidaMeetingsPaxos.PhaseOneRequest phase_one_request = phase_one_request_builder.build();
-        System.out.println("Going to send phase 1" + phase_one_request);
+        System.out.println("Going to send phase 1 " + phase_one_request);
 
         int low_ballot = Math.max(completed_ballot, 0);
         int high_ballot = ballot;
@@ -233,7 +231,7 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
         //System.out.println(" --- > PENDING REQUESTS:" + this.server_state.req_history.getAllPending());
         //System.out.println(" --- > IN PROCESS REQUESTS:" + this.server_state.req_history.getAllInProcess());
         System.out.println("Log entry with number " + next_entry.instance_nb + " has been decided with command id = " + next_entry.command_id);
-        RequestRecord request_record = this.server_state.req_history.getIfInProcess(next_entry.command_id); //FIXME i dont think we still need the while loop here
+        RequestRecord request_record = this.server_state.req_history.getIfExists(next_entry.command_id); //FIXME i dont think we still need the while loop here and also i changed this to if exists dangerous
 
         while (this.lastProcessed != next_entry.instance_nb - 1) { //debug mode 1 = freeze
             System.out.println("Waiting to process entry " + next_entry.instance_nb + " because last processed is " + this.lastProcessed);
@@ -289,7 +287,7 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
         // sending response
         System.out.println("Setting response for command with id = " + next_entry.command_id + " with result = " + result);
         request_record.setResponse(result);
-        this.server_state.req_history.moveToProcessed(request_record.getId());
+        this.server_state.req_history.moveToProcessed(request_record.getId()); //FIXME CHANGED MOVE TO PROCESSED
         this.lastProcessed = next_entry.instance_nb;
         notifyAll();
     }

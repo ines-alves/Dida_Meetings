@@ -16,10 +16,12 @@ public class Console {
     private int ballot_completed = -1;
     private int last_ballot = -1;
 
-    public synchronized void setBallotCompleted(int ballot) {
+    public synchronized boolean setBallotCompleted(int ballot) {
         if (ballot > this.ballot_completed) {
             this.ballot_completed = ballot;
+            return true;
         }
+        return false;
     }
 
     public synchronized int getBallotCompleted() {
@@ -142,8 +144,28 @@ public class Console {
                                             Iterator<DidaMeetingsMaster.NewBallotReply> newballot_iterator = newballot_responses.iterator();
                                             DidaMeetingsMaster.NewBallotReply newballot_reply = newballot_iterator.next();
                                             int completed = newballot_reply.getCompletedballot();
-                                            System.out.println("reply received to new ballot request for ballot = " + ballot_number + " with completed = " + completed);
-                                            setBallotCompleted(completed);
+                                            int replica = newballot_reply.getReplicaid();
+                                            System.out.println("reply received to new ballot request for ballot = " + ballot_number + " with completed = " + completed + " from replica " + replica);
+                                            boolean activation = setBallotCompleted(completed);
+                                           
+                                            System.out.println("Will reply activation = " + activation + " to replica " + replica);
+
+                                            DidaMeetingsMaster.ActivationRequest.Builder activation_request = DidaMeetingsMaster.ActivationRequest.newBuilder();
+                                            ArrayList<DidaMeetingsMaster.ActivationReply> activation_responses = new ArrayList<DidaMeetingsMaster.ActivationReply>();
+                                            GenericResponseCollector<DidaMeetingsMaster.ActivationReply> activation_collector = new GenericResponseCollector<DidaMeetingsMaster.ActivationReply>(activation_responses, 1);
+                                            CollectorStreamObserver<DidaMeetingsMaster.ActivationReply> activation_observer = new CollectorStreamObserver<DidaMeetingsMaster.ActivationReply>(activation_collector);
+                                            activation_request.setReqid(reqid);
+                                            activation_request.setActivation(activation);
+                                            console_async_stubs[replica].activation(activation_request.build(), activation_observer);
+                                            activation_collector.waitForQuorum(1);
+                                            if (activation_responses.size() >= 1) {
+                                                Iterator<DidaMeetingsMaster.ActivationReply> activation_iterator = activation_responses.iterator();
+                                                DidaMeetingsMaster.ActivationReply activation_reply = activation_iterator.next();
+                                                System.out.println("activation reply = " + activation_reply.getAck());
+                                            } else {
+                                                System.out.println("no reply received");
+                                            }
+                                            
                                         } else {
                                             System.out.println("no reply received to new ballot request for ballot = " + ballot_number);
                                         }

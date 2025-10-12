@@ -27,6 +27,8 @@ public class DidaMeetingsServerState {
     private int current_ballot;
     private int completed_ballot;
     private int debug_mode;
+    private boolean activation;
+    private boolean activationReceived;
 
     MainLoop main_loop;
     Thread main_loop_worker;
@@ -40,6 +42,8 @@ public class DidaMeetingsServerState {
         this.debug_mode = 0;
         this.current_ballot = 0;
         this.completed_ballot = -1;
+        this.activation = false;
+        this.activationReceived = false;
         this.req_history = new RequestHistory();
         this.paxos_log = new PaxosLog();
         this.main_loop = new MainLoop(this);
@@ -130,6 +134,24 @@ public class DidaMeetingsServerState {
             }
         }
         return this.completed_ballot;
+    }
+
+    public synchronized boolean waitForActivation() {
+        System.out.println(" --- WAITING FOR ACTIVATION --- ");
+        while (!this.activationReceived) {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+            }
+        }
+        this.activationReceived = false;
+        return this.activation;
+    }
+
+    public synchronized void setActivation(boolean activation) {
+        this.activation = activation;
+        this.activationReceived = true;
+        notifyAll();
     }
 
     public synchronized int getDebugMode() {

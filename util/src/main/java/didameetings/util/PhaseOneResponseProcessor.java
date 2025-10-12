@@ -76,7 +76,7 @@ public class PhaseOneResponseProcessor extends GenericResponseProcessor<DidaMeet
             } 
                 
         }
-        if(all_responses.size() < 2) {
+        if(all_responses.size() < scheduler.quorum(lowBallot)) {//all_responses.size() < 2
             return false;
         } else {
             return true;

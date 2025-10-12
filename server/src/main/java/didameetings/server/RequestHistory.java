@@ -114,9 +114,16 @@ public class RequestHistory {
 
     }
 
-    public synchronized RequestRecord moveToProcessed(int requestid) {
+    public synchronized RequestRecord moveToProcessed(int requestid) { //FIXME i dont like this think of a better ideas
         Integer id = new Integer(requestid);
-        RequestRecord record = this.in_process.remove(id);
+        RequestRecord record = null;
+        if (this.in_process.get(id) != null) {
+            record = this.in_process.remove(id);
+           
+        } else {
+            record = this.pending.remove(id);
+        }
+
         this.processed.put(id, record);
         return record;
     }

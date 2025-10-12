@@ -13,6 +13,7 @@ message NewBallotRequest {
 message NewBallotReply {
   int32 reqid           = 1;
   int32 completedballot = 2;
+  int32 replicaid       = 3;
 }
 
 message SetDebugRequest {
@@ -25,9 +26,20 @@ message SetDebugReply {
   bool ack      = 2;
 }
 
+message ActivationRequest {
+  int32 reqid      = 1;
+  bool activation  = 2;
+}
+
+message ActivationReply {
+  int32 reqid      = 1;
+  bool ack         = 2;
+}
+
 service DidaMeetingsMasterService {
   rpc newballot (NewBallotRequest) returns (NewBallotReply);
   rpc setdebug (SetDebugRequest) returns (SetDebugReply);
+  rpc activation (ActivationRequest) returns (ActivationReply);
 }
 
 

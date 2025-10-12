@@ -28,7 +28,7 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
         if (new_ballot > this.server_state.getCurrentBallot()) {
             this.server_state.setCurrentBallot(new_ballot);
 
-            this.server_state.main_loop.wakeup(2);
+            this.server_state.main_loop.wakeup(0);//FIXME code 0 ? was 2 here
 
             completed_ballot = this.server_state.waitForCompletedBallot(new_ballot);
         } else {
@@ -38,6 +38,7 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
         DidaMeetingsMaster.NewBallotReply.Builder response_builder = DidaMeetingsMaster.NewBallotReply.newBuilder();
         response_builder.setReqid(request_id);
         response_builder.setCompletedballot(completed_ballot);
+        response_builder.setReplicaid(this.server_state.my_id);
 
         DidaMeetingsMaster.NewBallotReply response = response_builder.build();
         responseObserver.onNext(response);
@@ -105,6 +106,23 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
         response_builder.setAck(response_value);
 
         DidaMeetingsMaster.SetDebugReply response = response_builder.build();
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+    }
+
+    @Override
+    public void activation(DidaMeetingsMaster.ActivationRequest request, StreamObserver<DidaMeetingsMaster.ActivationReply> responseObserver) {
+        System.out.println(request);
+        int request_id = request.getReqid();
+        boolean activation = request.getActivation();
+        
+        this.server_state.setActivation(activation);
+
+        DidaMeetingsMaster.ActivationReply.Builder response_builder = DidaMeetingsMaster.ActivationReply.newBuilder();
+        response_builder.setReqid(request_id);
+        response_builder.setAck(activation);
+
+        DidaMeetingsMaster.ActivationReply response = response_builder.build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }

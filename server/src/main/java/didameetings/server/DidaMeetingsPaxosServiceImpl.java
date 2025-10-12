@@ -47,7 +47,7 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
         int instance = request.getInstance();
         int ballot = request.getRequestballot();
         System.out.println("LONG PHASE 1 REQUEST - INSTANCE: " + instance );
-        PaxosInstance entry = this.server_state.paxos_log.testAndSetEntry(instance, ballot);
+        //PaxosInstance entry = this.server_state.paxos_log.testAndSetEntry(instance, ballot);
         boolean promised = false;
         ArrayList<DidaMeetingsPaxos.PhaseOneReply> longPhaseOneReply = new ArrayList<DidaMeetingsPaxos.PhaseOneReply>();
         DidaMeetingsPaxos.PhaseOneReply.Builder instances_reponse_builder = DidaMeetingsPaxos.PhaseOneReply.newBuilder();
@@ -57,7 +57,7 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
         if (ballot >= this.server_state.getCurrentBallot()) {
             promised = true;
             this.server_state.setCurrentBallot(ballot);
-            entry.read_ballot = ballot;
+            //entry.read_ballot = ballot;
             ArrayList<PaxosInstance> instances = this.server_state.paxos_log.getInstancesFrom(instance);
             for (PaxosInstance paxos_instance : instances) {
                 instances_reponse_builder.setInstance(paxos_instance.instance_nb);
@@ -170,7 +170,7 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
                 if (entry.n_accepts >= this.server_state.scheduler.quorum(ballot)) {
                     this.server_state.updateCompletedBallot(ballot);
                     entry.decided = true;
-                    this.server_state.req_history.getIfExists(value).setIsDecided(true);
+                    this.server_state.req_history.getIfExists(value).setIsDecided(true); //FIXME having trouble here sometimes with null pointer because it dosent
                     if (this.server_state.req_history.getIfProcessed(value) == null) {
                         System.out.println("VALUE DECIDED = " + value);
                         this.server_state.main_loop.processEntry(entry); //is this a good idea? like it seems legit but idk m i crazy ?
