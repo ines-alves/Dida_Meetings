@@ -39,6 +39,7 @@ public class DidaMeetingsApp {
     private DidaMeetingsMainServiceGrpc.DidaMeetingsMainServiceStub[] async_stubs;
     private char schedule;
     private ConfigurationScheduler scheduler;
+    private int paxosEntry;
 
     public DidaMeetingsApp() {
         this.interactive_mode = true;
@@ -60,6 +61,7 @@ public class DidaMeetingsApp {
         this.closed_meetings = new Hashtable<Integer, Meeting>();
         this.schedule = 'A';
         this.scheduler = null;
+        this.paxosEntry = 0;
     }
 
     private boolean open(int mid) {
@@ -85,6 +87,8 @@ public class DidaMeetingsApp {
             Iterator<DidaMeetingsMain.OpenReply> open_iterator = open_responses.iterator();
             DidaMeetingsMain.OpenReply open_reply = open_iterator.next();
             result = open_reply.getResult();
+            this.paxosEntry = open_reply.getPaxosentry();
+            System.out.println("OPEN return this paxos entry " + this.paxosEntry); //for debug purposes
             if (result) {
                 System.out.println("Meeting opened with id " + mid + "\n");
             } else {
@@ -121,6 +125,8 @@ public class DidaMeetingsApp {
             Iterator<DidaMeetingsMain.AddReply> add_iterator = add_responses.iterator();
             DidaMeetingsMain.AddReply add_reply = add_iterator.next();
             result = add_reply.getResult();
+            this.paxosEntry = add_reply.getPaxosentry();
+            System.out.println("ADD return this paxos entry " + this.paxosEntry); //for debug purposes
             if (result) {
                 System.out.println("Added participant with id " + pid + " to meeting with id " + mid + "\n");
             } else {
@@ -145,6 +151,8 @@ public class DidaMeetingsApp {
         topic_request.setMeetingid(mid);
         topic_request.setParticipantid(pid);
         topic_request.setTopicid(topic);
+        System.out.println("SENDING TOPIC WITH PAXOS ENTRY " + this.paxosEntry); //for debug purposes
+        topic_request.setPaxosentry(this.paxosEntry);
 
         ArrayList<DidaMeetingsMain.TopicReply> topic_responses = new ArrayList<DidaMeetingsMain.TopicReply>();
         GenericResponseCollector<DidaMeetingsMain.TopicReply> topic_collector = new GenericResponseCollector<DidaMeetingsMain.TopicReply>(topic_responses, n_servers);

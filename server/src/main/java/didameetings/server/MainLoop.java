@@ -258,7 +258,7 @@ public class MainLoop implements Runnable, PhaseTwoListener {
         }
     }
 
-    public synchronized void processEntry(PaxosInstance next_entry) { //FIXME Diogo implement here somthing that checks if the request has already been processed or maybe insede learn so we dont call it multiple times
+    public synchronized void processEntry(PaxosInstance next_entry) {
         //System.out.println(" --- > PENDING REQUESTS:" + this.server_state.req_history.getAllPending());
         //System.out.println(" --- > IN PROCESS REQUESTS:" + this.server_state.req_history.getAllInProcess());
         System.out.println("Log entry with number " + next_entry.instance_nb + " has been decided with command id = " + next_entry.command_id);
@@ -300,7 +300,7 @@ public class MainLoop implements Runnable, PhaseTwoListener {
                 result = this.server_state.meeting_manager.addAndClose(command.getMeetingId(), command.getParticipantId());
                 break;
             case DidaMeetingsAction.TOPIC:
-                result = this.server_state.meeting_manager.setTopic(command.getMeetingId(), command.getParticipantId(), command.getTopicId());
+                result = this.server_state.meeting_manager.setTopic(command.getMeetingId(), command.getParticipantId(), command.getTopicId()); //FIXME no longer needed delete this
                 break;
             case DidaMeetingsAction.CLOSE:
                 result = this.server_state.meeting_manager.close(command.getMeetingId());
@@ -322,4 +322,19 @@ public class MainLoop implements Runnable, PhaseTwoListener {
         this.lastProcessed = next_entry.instance_nb;
         notifyAll();
     }
+
+    public synchronized void processTopic(RequestRecord request_record) {
+        System.out.println("Processing topic with id = " + request_record.getId());
+
+        DidaMeetingsCommand command = request_record.getRequest();
+
+        boolean result = this.server_state.meeting_manager.setTopic(command.getMeetingId(), command.getParticipantId(), command.getTopicId());
+        request_record.setResponse(result);
+        this.server_state.req_history.addToProcessed(request_record.getId(), request_record);
+    }
+
+    public synchronized int getLastProcessed() {
+        return this.lastProcessed;
+    }
+
 }

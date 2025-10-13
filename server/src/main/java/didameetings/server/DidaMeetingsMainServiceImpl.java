@@ -37,7 +37,7 @@ public class DidaMeetingsMainServiceImpl extends DidaMeetingsMainServiceGrpc.Did
         // for debug purposes
         System.out.println("Result is ready for open request with reqid " + reqid);
 
-        DidaMeetingsMain.OpenReply response = DidaMeetingsMain.OpenReply.newBuilder().setReqid(reqid).setResult(result).build();
+        DidaMeetingsMain.OpenReply response = DidaMeetingsMain.OpenReply.newBuilder().setReqid(reqid).setResult(result).setPaxosentry(this.server_state.main_loop.getLastProcessed()).build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
@@ -67,7 +67,7 @@ public class DidaMeetingsMainServiceImpl extends DidaMeetingsMainServiceGrpc.Did
         // for debug purposes
         System.out.println("Result is ready for add request with reqid " + reqid);
 
-        DidaMeetingsMain.AddReply response = DidaMeetingsMain.AddReply.newBuilder().setReqid(reqid).setResult(result).build();
+        DidaMeetingsMain.AddReply response = DidaMeetingsMain.AddReply.newBuilder().setReqid(reqid).setResult(result).setPaxosentry(this.server_state.main_loop.getLastProcessed()).build();
 
         responseObserver.onNext(response);
         responseObserver.onCompleted();
@@ -82,6 +82,7 @@ public class DidaMeetingsMainServiceImpl extends DidaMeetingsMainServiceGrpc.Did
         int mid = request.getMeetingid();
         int pid = request.getParticipantid();
         int topic = request.getTopicid();
+        int paxosEntry = request.getPaxosentry();
 
         // for debug purposes
         System.out.println("reqid " + reqid + " meetingid " + mid);
@@ -92,8 +93,16 @@ public class DidaMeetingsMainServiceImpl extends DidaMeetingsMainServiceGrpc.Did
         //System.out.println("Adding topic request with reqid " + reqid + " to pending");
 
         RequestRecord request_record = new RequestRecord(reqid, command);
-        this.server_state.req_history.addToPending(reqid, request_record);
-        this.server_state.main_loop.wakeup(0);
+        while (this.server_state.main_loop.getLastProcessed() < paxosEntry) { 
+            try {
+                System.out.println("Waiting for paxosEntry " + paxosEntry + " current " + this.server_state.main_loop.getLastProcessed());
+                wait(); 
+            } catch (InterruptedException e) {
+            }
+            
+        }
+        
+        this.server_state.main_loop.processTopic(request_record);
         boolean result = request_record.waitForResponse();
 
         // for debug purposes

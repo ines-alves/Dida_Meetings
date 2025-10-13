@@ -127,8 +127,13 @@ public class RequestHistory {
         this.processed.put(id, record);
         return record;
     }
+
     public synchronized int processedSize() {
         return this.processed.size();
     }
 
+    public synchronized void addToProcessed(int requestid, RequestRecord record) {
+        Integer id = new Integer(requestid);
+        this.processed.put(id, record);
+    }
 }

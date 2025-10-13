@@ -10,8 +10,9 @@ message OpenRequest {
 }
 
 message OpenReply {
-  int32 reqid   = 1;
-  bool  result	= 2;
+  int32 reqid      = 1;
+  bool  result	   = 2;
+  int32 paxosentry = 3;
 }
 
 message AddRequest {
@@ -21,8 +22,9 @@ message AddRequest {
 }
 
 message AddReply {
-  int32 reqid   = 1;
-  bool  result	= 2;
+  int32 reqid      = 1;
+  bool  result	   = 2;
+  int32 paxosentry = 3;
 }
 
 message TopicRequest {
@@ -30,6 +32,7 @@ message TopicRequest {
   int32 meetingid     = 2;
   int32 participantid = 3;
   int32 topicid       = 4;
+  int32 paxosentry    = 5;
 }
 
 message TopicReply {
