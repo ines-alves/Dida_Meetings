@@ -10,13 +10,13 @@ public class PhaseTwoResponseProcessor extends GenericResponseProcessor<DidaMeet
     private int maxballot;
     private int quorum;
     private int responses;
-    private PhaseTwoAbortListener abortListener;
+    private PhaseTwoListener listener;
 
-    public PhaseTwoResponseProcessor(int q, PhaseTwoAbortListener listener) {
+    public PhaseTwoResponseProcessor(int q, PhaseTwoListener listener) {
         this.accepted = true;
         this.maxballot = 0;
         this.quorum = q;
-        this.abortListener = listener;
+        this.listener = listener;
         this.responses = 0;
     }
 
@@ -36,10 +36,11 @@ public class PhaseTwoResponseProcessor extends GenericResponseProcessor<DidaMeet
             if (last_response.getMaxballot() > this.maxballot) {
                 this.maxballot = last_response.getMaxballot();
             }
-            abortListener.onPhaseTwoAborted(this.maxballot,last_response.getInstance());
+            listener.onPhaseTwoAborted(this.maxballot,last_response.getInstance());
             return true;
         } else if (responses >= quorum) {
-            return true; 
+            listener.onPhaseTwoFinish();
+            return true;
         }else {
             return false;
         }

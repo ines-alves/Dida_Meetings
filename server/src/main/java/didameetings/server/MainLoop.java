@@ -13,10 +13,10 @@ import didameetings.util.CollectorStreamObserver;
 import didameetings.util.GenericResponseCollector;
 import didameetings.util.PhaseOneResponseProcessor;
 import didameetings.util.PhaseTwoResponseProcessor;
-import didameetings.util.PhaseTwoAbortListener;
+import didameetings.util.PhaseTwoListener;
 import io.grpc.ManagedChannel;
 
-public class MainLoop implements Runnable, PhaseTwoAbortListener {
+public class MainLoop implements Runnable, PhaseTwoListener {
 
     DidaMeetingsServerState server_state;
 
@@ -24,6 +24,7 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
     private boolean ballot_aborted;
     private int next_log_entry;
     private int lastProcessed;
+    private int phase2sent;
     private List<Integer> all_participants;
     private int n_participants;
     private String[] targets;
@@ -35,6 +36,7 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
         this.has_work = -1;
         this.next_log_entry = 0;
         this.lastProcessed = 0;
+        this.phase2sent = 0;
         this.ballot_aborted = false;
     }
 
@@ -52,11 +54,17 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
                 for (Map.Entry<Integer, PhaseOneResponseProcessor.PhaseOneReplyArgs> entry : phase1Results.entrySet()) {
                     System.out.println("Instance: " + entry.getKey() + ", Value: " + entry.getValue().value + ", Valballot: " + entry.getValue().valballot);
                     if (entry.getValue().value != -1) {
+                        this.phase2sent++;
                         System.out.println("PHASE 2 FOR PREVIOUS VALUES " + this.next_log_entry + " PHASE 2 VAL: " + entry.getValue().value);
                         phase2(entry.getKey(), entry.getValue().value);
                         this.next_log_entry++;
                     }
                 }
+
+                System.out.println("I SENT " + this.phase2sent + " Phase2 i will wait now");
+                //FIXME We need to wait here for the phases2 to fisnish 
+                waitForPhase2sent();
+
                 System.out.println("Completed ballot set to " + ballot);
                 this.server_state.setCompletedBallot(ballot);
                 
@@ -117,16 +125,35 @@ public class MainLoop implements Runnable, PhaseTwoAbortListener {
         }
     }
 
+    public synchronized void waitForPhase2sent() {
+        while (this.phase2sent != 0) {
+            System.out.println(" ---WAITING FOR Phase2sent--- ");
+            try {
+                wait();
+            } catch (InterruptedException e) {
+            }
+        }
+    }
+
     @Override
     public void onPhaseTwoAborted(int maxballot, int instance) {
         System.out.println("Phase Two aborted. Max ballot: " + maxballot + ", Instance: " + instance);
         this.ballot_aborted = true;
-        if (maxballot > this.server_state.getCurrentBallot()) { //FIXME maybe not needed have to think about it
+        if (maxballot > this.server_state.getCurrentBallot()) {
             this.server_state.setCurrentBallot(maxballot);
         }
         int command = this.server_state.paxos_log.getEntry(instance).command_id;
         this.server_state.req_history.moveToPending(command);
-        notifyAll(); // FIXME should it notifyAll here ?
+        notifyAll();
+    }
+
+    @Override
+    public void onPhaseTwoFinish() {
+        if (this.phase2sent > 0){
+        System.out.println("*** Phase Two ended the phase2sent value will be " + (this.phase2sent - 1));
+        this.phase2sent--;
+        notifyAll();
+        }
     }
 
     public void checkDelay() {

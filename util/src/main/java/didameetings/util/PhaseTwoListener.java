@@ -1,5 +1,7 @@
 package didameetings.util;
 
-public interface PhaseTwoAbortListener {
+public interface PhaseTwoListener {
     void onPhaseTwoAborted(int maxballot, int instance);
+
+    void onPhaseTwoFinish();
 }
