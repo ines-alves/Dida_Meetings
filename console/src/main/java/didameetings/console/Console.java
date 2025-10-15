@@ -17,7 +17,7 @@ public class Console {
     private int last_ballot = -1;
 
     public synchronized boolean setBallotCompleted(int ballot) {
-        if (ballot > this.ballot_completed) {
+        if (ballot == this.last_ballot) {
             this.ballot_completed = ballot;
             return true;
         }

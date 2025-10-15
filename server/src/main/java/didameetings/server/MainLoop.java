@@ -51,6 +51,10 @@ public class MainLoop implements Runnable, PhaseTwoListener {
                 this.next_log_entry = this.lastProcessed + 1;
                 //int completed_ballot = this.server_state.getCompletedBallot();
                 Map<Integer, PhaseOneResponseProcessor.PhaseOneReplyArgs> phase1Results = phase1(lastProcessed);//FIXME changed this to last processed
+                if (phase1Results == null) { //phase 1 aborted
+                    System.out.println("Phase 1 aborted");
+                    continue;
+                }
                 for (Map.Entry<Integer, PhaseOneResponseProcessor.PhaseOneReplyArgs> entry : phase1Results.entrySet()) {
                     System.out.println("Instance: " + entry.getKey() + ", Value: " + entry.getValue().value + ", Valballot: " + entry.getValue().valballot);
                     if (entry.getValue().value != -1) {
