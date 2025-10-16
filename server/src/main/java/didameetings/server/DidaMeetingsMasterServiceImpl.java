@@ -20,7 +20,6 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
         int new_ballot = request.getNewballot();
         int completed_ballot = request.getCompletedballot();;
 
-        // for debug purposes
         System.out.println("Current ballot = " + this.server_state.getCurrentBallot() + " new ballot = " + new_ballot + " completed ballot = " + completed_ballot);
 
         this.server_state.setCompletedBallot(completed_ballot);
@@ -28,7 +27,7 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
         if (new_ballot > this.server_state.getCurrentBallot()) {
             this.server_state.setCurrentBallot(new_ballot);
 
-            this.server_state.main_loop.wakeup(0);//FIXME code 0 ? was 2 here
+            this.server_state.main_loop.wakeup();
 
             completed_ballot = this.server_state.waitForCompletedBallot(new_ballot);
         } else {
@@ -47,7 +46,6 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
 
     @Override
     public void setdebug(DidaMeetingsMaster.SetDebugRequest request, StreamObserver<DidaMeetingsMaster.SetDebugReply> responseObserver) {
-        // for debug purposes
         System.out.println(request);
 
         boolean response_value = true;
@@ -66,7 +64,7 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
                 System.out.println("=====================");
                 try {
                     synchronized (this.server_state.main_loop) {
-                        this.server_state.main_loop.wakeup(0);
+                        this.server_state.main_loop.wakeup();
                     }
                 } catch (Exception e) {
                 }
@@ -77,7 +75,7 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
                 System.out.println("==================");
                 try {
                     synchronized (this.server_state.main_loop) {
-                        this.server_state.main_loop.wakeup(3);
+                        this.server_state.main_loop.wakeup();
                     }
                 } catch (Exception e) {
                 }
@@ -98,7 +96,6 @@ public class DidaMeetingsMasterServiceImpl extends DidaMeetingsMasterServiceGrpc
                 break;
         }
 
-        // for debug purposes
         System.out.println("Setting debug mode to = " + this.server_state.getDebugMode());
 
         DidaMeetingsMaster.SetDebugReply.Builder response_builder = DidaMeetingsMaster.SetDebugReply.newBuilder();

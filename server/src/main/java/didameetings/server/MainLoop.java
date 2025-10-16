@@ -1,11 +1,9 @@
 package didameetings.server;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+
 
 import didameetings.DidaMeetingsPaxos;
 import didameetings.DidaMeetingsPaxosServiceGrpc;
@@ -14,26 +12,20 @@ import didameetings.util.GenericResponseCollector;
 import didameetings.util.PhaseOneResponseProcessor;
 import didameetings.util.PhaseTwoResponseProcessor;
 import didameetings.util.PhaseTwoListener;
-import io.grpc.ManagedChannel;
 
 public class MainLoop implements Runnable, PhaseTwoListener {
 
     DidaMeetingsServerState server_state;
 
-    private int has_work;
+    private boolean has_work;
     private boolean ballot_aborted;
     private int next_log_entry;
     private int lastProcessed;
     private int phase2sent;
-    private List<Integer> all_participants;
-    private int n_participants;
-    private String[] targets;
-    private ManagedChannel[] channels;
-    private DidaMeetingsPaxosServiceGrpc.DidaMeetingsPaxosServiceStub[] async_stubs;
 
     public MainLoop(DidaMeetingsServerState state) {
         this.server_state = state;
-        this.has_work = -1;
+        this.has_work = false;
         this.next_log_entry = 0;
         this.lastProcessed = 0;
         this.phase2sent = 0;
@@ -43,14 +35,13 @@ public class MainLoop implements Runnable, PhaseTwoListener {
     public void run() {
         while (true) {
             waitForWork();
-            
+            checkCrash();
             checkDelay();
             
             int ballot = this.server_state.getCurrentBallot();
             if ((ballot > -1) && (this.server_state.scheduler.leader(ballot) == this.server_state.my_id)) { //only the leader executes
                 this.next_log_entry = this.lastProcessed + 1;
-                //int completed_ballot = this.server_state.getCompletedBallot();
-                Map<Integer, PhaseOneResponseProcessor.PhaseOneReplyArgs> phase1Results = phase1(lastProcessed);//FIXME changed this to last processed
+                Map<Integer, PhaseOneResponseProcessor.PhaseOneReplyArgs> phase1Results = phase1(lastProcessed);
                 if (phase1Results == null) { //phase 1 aborted
                     System.out.println("Phase 1 aborted");
                     continue;
@@ -66,18 +57,17 @@ public class MainLoop implements Runnable, PhaseTwoListener {
                 }
 
                 System.out.println("I SENT " + this.phase2sent + " Phase2 i will wait now");
-                //FIXME We need to wait here for the phases2 to fisnish 
+             
                 waitForPhase2sent();
 
                 System.out.println("Completed ballot set to " + ballot);
                 this.server_state.setCompletedBallot(ballot);
                 
-                //FIXME add here a check to see if its the first ballot cause it might have not been send ballot 0 0 and it will wait forever for activation
-                if (ballot != 0) {//FIXME i dont like this if 
+                if (ballot != 0) {// In case the console didn't say ballot 0 0, because it is the default ballot
                     boolean activation = this.server_state.waitForActivation();
                     System.out.println(" --- ACTIVATION REPLY " + activation + " --- ");
                     if (!activation) {
-                        this.has_work = -1;
+                        this.has_work = false;
                         continue;
                     }
                 }
@@ -94,7 +84,7 @@ public class MainLoop implements Runnable, PhaseTwoListener {
                 
                 phase2Loop();
             }
-            this.has_work = -1;
+            this.has_work = false;
         }
     }
 
@@ -106,22 +96,23 @@ public class MainLoop implements Runnable, PhaseTwoListener {
                 phase2(this.next_log_entry , phase_two_value);
                 this.next_log_entry++; 
             }
-            this.has_work = -1;
+            this.has_work = false;
             waitForWork();
+            checkCrash();
+            checkDelay();
         }
         this.ballot_aborted = false;
     }
 
-    public synchronized void wakeup(int code) {// 0 = client request, 2 = new ballot, 3 = debug
-        this.has_work = code;
+    public synchronized void wakeup() {
+        this.has_work = true;
         notifyAll();
     }
 
     public synchronized void waitForWork() {
-        while (this.has_work != 0 || (this.server_state.getDebugMode() == 1)) { //debug mode 1 = freeze
+        while (!this.has_work || (this.server_state.getDebugMode() == 1)) { //debug mode 1 = freeze
             System.out.println(" ---WAITING FOR WORK--- ");
-            try { //FIXME this had a syncornized block around it but i mean the function is already synchronized now
-                checkCrash();
+            try { 
                 wait();
 
             } catch (InterruptedException e) {
@@ -148,6 +139,10 @@ public class MainLoop implements Runnable, PhaseTwoListener {
         }
         int command = this.server_state.paxos_log.getEntry(instance).command_id;
         this.server_state.req_history.moveToPending(command);
+        if (this.phase2sent > 0){
+            System.out.println("*** Phase Two ended the phase2sent value will be " + (this.phase2sent - 1));
+            this.phase2sent--;
+        }
         notifyAll();
     }
 
@@ -166,7 +161,7 @@ public class MainLoop implements Runnable, PhaseTwoListener {
             System.out.println("SLOW MODE ON: APPLYING RANDOM DELAY");
             System.out.println("====================================");
             try {
-                Thread.sleep(3000); // Sleep for 3 seconds
+                Thread.sleep(3000); 
                 System.out.println("===========================");
                 System.out.println("SLOW MODE ON: WAKING UP !!!");
                 System.out.println("===========================");
@@ -210,7 +205,6 @@ public class MainLoop implements Runnable, PhaseTwoListener {
         int high_ballot = ballot;
 
         PhaseOneResponseProcessor phase_one_processor = new PhaseOneResponseProcessor(this.server_state.scheduler, low_ballot, high_ballot);
-        //PhaseOneBogusProcessor phase_one_processor = new PhaseOneBogusProcessor(this.server_state.scheduler, low_ballot, high_ballot);
 
         ArrayList<DidaMeetingsPaxos.LongPhaseOneReply> phase_one_responses = new ArrayList<DidaMeetingsPaxos.LongPhaseOneReply>();
         GenericResponseCollector<DidaMeetingsPaxos.LongPhaseOneReply> phase_one_collector = new GenericResponseCollector<DidaMeetingsPaxos.LongPhaseOneReply>(phase_one_responses, n_acceptors, phase_one_processor);
@@ -252,7 +246,7 @@ public class MainLoop implements Runnable, PhaseTwoListener {
         phase_two_request.setRequestballot(ballot);
         phase_two_request.setValue(phase_two_value);
 
-        PhaseTwoResponseProcessor phase_two_processor = new PhaseTwoResponseProcessor(quorum,this);//FIXME added this have to check the logic 
+        PhaseTwoResponseProcessor phase_two_processor = new PhaseTwoResponseProcessor(quorum,this);
 
         ArrayList<DidaMeetingsPaxos.PhaseTwoReply> phase_two_responses = new ArrayList<DidaMeetingsPaxos.PhaseTwoReply>();
         GenericResponseCollector<DidaMeetingsPaxos.PhaseTwoReply> phase_two_collector = new GenericResponseCollector<DidaMeetingsPaxos.PhaseTwoReply>(phase_two_responses, n_acceptors, phase_two_processor);
@@ -263,10 +257,9 @@ public class MainLoop implements Runnable, PhaseTwoListener {
     }
 
     public synchronized void processEntry(PaxosInstance next_entry) {
-        //System.out.println(" --- > PENDING REQUESTS:" + this.server_state.req_history.getAllPending());
-        //System.out.println(" --- > IN PROCESS REQUESTS:" + this.server_state.req_history.getAllInProcess());
+
         System.out.println("Log entry with number " + next_entry.instance_nb + " has been decided with command id = " + next_entry.command_id);
-        RequestRecord request_record = this.server_state.req_history.getIfExists(next_entry.command_id); //FIXME i dont think we still need the while loop here and also i changed this to if exists dangerous
+        RequestRecord request_record = this.server_state.req_history.getIfExists(next_entry.command_id);
 
         while (this.lastProcessed != next_entry.instance_nb - 1) { //debug mode 1 = freeze
             System.out.println("Waiting to process entry " + next_entry.instance_nb + " because last processed is " + this.lastProcessed);
@@ -287,14 +280,11 @@ public class MainLoop implements Runnable, PhaseTwoListener {
             request_record = this.server_state.req_history.getIfExists(next_entry.command_id);
         }
         
-        // exec request in entry
-        // System.out.println("Going to process command with id = " + next_entry.command_id);
         DidaMeetingsCommand command = request_record.getRequest();
         boolean result = false;
 
         DidaMeetingsAction action = command.getAction();
 
-        // System.out.println("Action  = " + action);
         switch (action) {
             case DidaMeetingsAction.OPEN:
                 System.out.println("It is an open request with id = " + command.getMeetingId() + " and max = " + this.server_state.max_participants);
@@ -302,9 +292,6 @@ public class MainLoop implements Runnable, PhaseTwoListener {
                 break;
             case DidaMeetingsAction.ADD:
                 result = this.server_state.meeting_manager.addAndClose(command.getMeetingId(), command.getParticipantId());
-                break;
-            case DidaMeetingsAction.TOPIC:
-                result = this.server_state.meeting_manager.setTopic(command.getMeetingId(), command.getParticipantId(), command.getTopicId()); //FIXME no longer needed delete this
                 break;
             case DidaMeetingsAction.CLOSE:
                 result = this.server_state.meeting_manager.close(command.getMeetingId());
@@ -322,7 +309,7 @@ public class MainLoop implements Runnable, PhaseTwoListener {
         // sending response
         System.out.println("Setting response for command with id = " + next_entry.command_id + " with result = " + result);
         request_record.setResponse(result);
-        this.server_state.req_history.moveToProcessed(request_record.getId()); //FIXME CHANGED MOVE TO PROCESSED
+        this.server_state.req_history.moveToProcessed(request_record.getId());
         this.lastProcessed = next_entry.instance_nb;
         notifyAll();
     }

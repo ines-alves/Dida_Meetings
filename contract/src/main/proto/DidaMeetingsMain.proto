@@ -12,7 +12,6 @@ message OpenRequest {
 message OpenReply {
   int32 reqid      = 1;
   bool  result	   = 2;
-  int32 paxosentry = 3;
 }
 
 message AddRequest {

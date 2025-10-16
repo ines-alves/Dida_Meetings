@@ -32,24 +32,16 @@ public class RequestHistory {
             return null;
         }
     }
-    public synchronized RequestRecord getPendingAtIndex(int index) {
-        ArrayList<RequestRecord> list = new ArrayList<>(this.pending.values());
-        if (list.isEmpty()) {
-            return null;
-        }
-        // Ensure index wraps around so it's always valid
-        int safeIndex = index % list.size();
-        return list.get(safeIndex);
-    }
+
     public synchronized Collection<RequestRecord> getAllPending() {
        return new ArrayList<>(this.pending.values());
     }
 
     public synchronized RequestRecord moveToInProcess(int requestid) {
         Integer id = new Integer(requestid);
-        while (this.pending.get(id) == null && this.in_process.get(id) == null) { //FIXME maybe use getIfexists
+        while (this.pending.get(id) == null && this.in_process.get(id) == null) { 
             try {
-                System.out.println(" --- > REQUEST NOT FOUND IN PENDING: " + requestid);
+                System.out.println(" REQUEST NOT FOUND IN PENDING: " + requestid);
                 wait();
             } catch (InterruptedException e) {
                 System.out.println("Interrupted while waiting for request to be added to pending: " + e);
@@ -62,17 +54,6 @@ public class RequestHistory {
         } else {
             return null;
         }
-        /*
-        RequestRecord recordTest = this.pending.get(id); //FIXME THIS SHOULDnt be here
-        if (recordTest == null) {
-            System.out.println(" --- > REQUEST NOT FOUND IN PENDING: " + requestid);
-            return null;
-        }else{
-            RequestRecord record = this.pending.remove(id);
-            this.in_process.put(id, record);
-            return record;
-        }
-        */
     }
 
     public synchronized RequestRecord getIfProcessed(int requestid) {
@@ -104,7 +85,7 @@ public class RequestHistory {
         Integer id = new Integer(requestid);
 
         this.pending.put(id, record);
-        notifyAll(); //FIXME THIS CAN BE SO DANGEROUS!!!
+        notifyAll(); 
     }
 
     public synchronized void moveToPending(int requestid){
@@ -114,7 +95,7 @@ public class RequestHistory {
 
     }
 
-    public synchronized RequestRecord moveToProcessed(int requestid) { //FIXME i dont like this think of a better ideas
+    public synchronized RequestRecord moveToProcessed(int requestid) { 
         Integer id = new Integer(requestid);
         RequestRecord record = null;
         if (this.in_process.get(id) != null) {

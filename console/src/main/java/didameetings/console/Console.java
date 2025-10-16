@@ -16,6 +16,7 @@ public class Console {
     private int ballot_completed = -1;
     private int last_ballot = -1;
 
+    // Checks if the ballot that wants to be activated is the last one the console issued
     public synchronized boolean setBallotCompleted(int ballot) {
         if (ballot == this.last_ballot) {
             this.ballot_completed = ballot;
@@ -139,13 +140,16 @@ public class Console {
                                 // collect the result in background
                                 new Thread(new Runnable() {
                                     public void run() {
+                                        // waits for a completed ballot reply
                                         newballot_collector.waitForQuorum(1);
                                         if (newballot_responses.size() >= 1) {
+
                                             Iterator<DidaMeetingsMaster.NewBallotReply> newballot_iterator = newballot_responses.iterator();
                                             DidaMeetingsMaster.NewBallotReply newballot_reply = newballot_iterator.next();
                                             int completed = newballot_reply.getCompletedballot();
                                             int replica = newballot_reply.getReplicaid();
                                             System.out.println("reply received to new ballot request for ballot = " + ballot_number + " with completed = " + completed + " from replica " + replica);
+                                            // Checks if the ballot can be activated
                                             boolean activation = setBallotCompleted(completed);
                                            
                                             System.out.println("Will reply activation = " + activation + " to replica " + replica);
@@ -157,6 +161,8 @@ public class Console {
                                             activation_request.setReqid(reqid);
                                             activation_request.setActivation(activation);
                                             console_async_stubs[replica].activation(activation_request.build(), activation_observer);
+                                            
+                                            // Waits for activation ack
                                             activation_collector.waitForQuorum(1);
                                             if (activation_responses.size() >= 1) {
                                                 Iterator<DidaMeetingsMaster.ActivationReply> activation_iterator = activation_responses.iterator();

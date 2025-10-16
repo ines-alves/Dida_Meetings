@@ -68,7 +68,8 @@ public class PhaseOneResponseProcessor extends GenericResponseProcessor<DidaMeet
             if (!reply.getPromised()) {
                 this.promised = false;
                 this.highBallot = Math.max(this.highBallot, reply.getMaxballot());
-                break; //FIXME shouldnt it be a return true here ?
+                // If it receives a promised false then stops checking the replies and will abort
+                break; 
             } else if (this.instancesMap.get(reply.getInstance()) == null || reply.getValballot() > this.instancesMap.get(reply.getInstance()).valballot) {
                 // If it's the first time we see this instance or if this reply has a higher valballot than the stored one
                 PhaseOneReplyArgs args = new PhaseOneReplyArgs(reply.getValue(), reply.getValballot());
@@ -76,7 +77,7 @@ public class PhaseOneResponseProcessor extends GenericResponseProcessor<DidaMeet
             } 
                 
         }
-        if(all_responses.size() < scheduler.quorum(lowBallot)) {//all_responses.size() < 2
+        if (all_responses.size() < scheduler.quorum(lowBallot)) {
             return false;
         } else {
             return true;

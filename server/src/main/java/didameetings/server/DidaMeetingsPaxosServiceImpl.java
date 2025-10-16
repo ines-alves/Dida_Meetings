@@ -30,7 +30,7 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
             System.out.println("THE DELAY IS INSIDE THE PAXOS MESSAGES");
             System.out.println("====================================");
             try {
-                Thread.sleep(3000); // Sleep for 3 seconds
+                Thread.sleep(3000); 
                 System.out.println("===========================");
                 System.out.println("SLOW MODE ON: WAKING UP !!!");
                 System.out.println("===========================");
@@ -47,7 +47,7 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
         int instance = request.getInstance();
         int ballot = request.getRequestballot();
         System.out.println("LONG PHASE 1 REQUEST - INSTANCE: " + instance );
-        //PaxosInstance entry = this.server_state.paxos_log.testAndSetEntry(instance, ballot);
+
         boolean promised = false;
         ArrayList<DidaMeetingsPaxos.PhaseOneReply> longPhaseOneReply = new ArrayList<DidaMeetingsPaxos.PhaseOneReply>();
         DidaMeetingsPaxos.PhaseOneReply.Builder instances_reponse_builder = DidaMeetingsPaxos.PhaseOneReply.newBuilder();
@@ -57,7 +57,6 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
         if (ballot >= this.server_state.getCurrentBallot()) {
             promised = true;
             this.server_state.setCurrentBallot(ballot);
-            //entry.read_ballot = ballot;
             ArrayList<PaxosInstance> instances = this.server_state.paxos_log.getInstancesFrom(instance);
             for (PaxosInstance paxos_instance : instances) {
                 instances_reponse_builder.setInstance(paxos_instance.instance_nb);
@@ -103,9 +102,9 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
             accepted = true;
             entry.command_id = value;
             entry.write_ballot = ballot;
-            entry.accept_ballot = ballot; // FIXME is this right?
+            entry.accept_ballot = ballot; 
             this.server_state.setCurrentBallot(ballot);
-            this.server_state.req_history.moveToInProcess(value); //changed this to inside this if was in line 113
+            this.server_state.req_history.moveToInProcess(value);
         
         } else {
             maxballot = this.server_state.getCurrentBallot();
@@ -145,7 +144,6 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
                     CollectorStreamObserver<DidaMeetingsPaxos.LearnReply> learn_observer = new CollectorStreamObserver<DidaMeetingsPaxos.LearnReply>(learn_collector);
                     this.server_state.async_stubs[learners.get(i)].learn(learn_request, learn_observer);
                 }
-                // System.out.println("Learn request completed for instance = " + instance);
             });
         }
 
@@ -170,11 +168,11 @@ public class DidaMeetingsPaxosServiceImpl extends DidaMeetingsPaxosServiceGrpc.D
                 if (entry.n_accepts >= this.server_state.scheduler.quorum(ballot)) {
                     this.server_state.updateCompletedBallot(ballot);
                     entry.decided = true;
-                    this.server_state.req_history.getIfExists(value).setIsDecided(true); //FIXME having trouble here sometimes with null pointer because it dosent
+                    this.server_state.req_history.getIfExists(value).setIsDecided(true);
+                    // Doesn't the process the request more than once
                     if (this.server_state.req_history.getIfProcessed(value) == null) {
                         System.out.println("VALUE DECIDED = " + value);
-                        this.server_state.main_loop.processEntry(entry); //is this a good idea? like it seems legit but idk m i crazy ?
-                        //this.server_state.main_loop.learn();
+                        this.server_state.main_loop.processEntry(entry);
                     }
                 }
             } else if (ballot > entry.accept_ballot) {

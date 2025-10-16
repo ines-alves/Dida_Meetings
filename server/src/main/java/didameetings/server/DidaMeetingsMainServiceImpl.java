@@ -15,58 +15,47 @@ public class DidaMeetingsMainServiceImpl extends DidaMeetingsMainServiceGrpc.Did
 
     @Override
     public void open(DidaMeetingsMain.OpenRequest request, StreamObserver<DidaMeetingsMain.OpenReply> responseObserver) {
-        // for debug purposes
         System.out.println("Receiving open request:" + request);
 
         int reqid = request.getReqid();
         int mid = request.getMeetingid();
 
-        // for debug purposes
         System.out.println("reqid " + reqid + " meetingid " + mid);
 
         DidaMeetingsCommand command = new DidaMeetingsCommand(DidaMeetingsAction.OPEN, mid);
 
-        // for debug purposes
-        //System.out.println("Adding open request with reqid " + reqid + " to pending");
-
         RequestRecord request_record = new RequestRecord(reqid, command);
         this.server_state.req_history.addToPending(reqid, request_record);
-        this.server_state.main_loop.wakeup(0);
+        this.server_state.main_loop.wakeup();
         boolean result = request_record.waitForResponse();
 
-        // for debug purposes
         System.out.println("Result is ready for open request with reqid " + reqid);
 
-        DidaMeetingsMain.OpenReply response = DidaMeetingsMain.OpenReply.newBuilder().setReqid(reqid).setResult(result).setPaxosentry(this.server_state.main_loop.getLastProcessed()).build();
+        DidaMeetingsMain.OpenReply response = DidaMeetingsMain.OpenReply.newBuilder().setReqid(reqid).setResult(result).build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
 
     @Override
     public void add(DidaMeetingsMain.AddRequest request, StreamObserver<DidaMeetingsMain.AddReply> responseObserver) {
-        // for debug purposes
+
         System.out.println("Receiving add request:" + request);
 
         int reqid = request.getReqid();
         int mid = request.getMeetingid();
         int pid = request.getParticipantid();
 
-        // for debug purposes
         System.out.println("reqid " + reqid + " meetingid " + mid + " participantid " + pid);
 
         DidaMeetingsCommand command = new DidaMeetingsCommand(DidaMeetingsAction.ADD, mid, pid);
 
-        // for debug purposes
-        //System.out.println("Adding add request with reqid " + reqid + " to pending");
-
         RequestRecord request_record = new RequestRecord(reqid, command);
         this.server_state.req_history.addToPending(reqid, request_record);
-        this.server_state.main_loop.wakeup(0);
+        this.server_state.main_loop.wakeup();
         boolean result = request_record.waitForResponse();
 
-        // for debug purposes
         System.out.println("Result is ready for add request with reqid " + reqid);
-
+        // Sends the paxos instance number that was attributed to the add operation
         DidaMeetingsMain.AddReply response = DidaMeetingsMain.AddReply.newBuilder().setReqid(reqid).setResult(result).setPaxosentry(this.server_state.main_loop.getLastProcessed()).build();
 
         responseObserver.onNext(response);
@@ -75,7 +64,6 @@ public class DidaMeetingsMainServiceImpl extends DidaMeetingsMainServiceGrpc.Did
 
     @Override
     public void topic(DidaMeetingsMain.TopicRequest request, StreamObserver<DidaMeetingsMain.TopicReply> responseObserver) {
-        // for debug purposes
         System.out.println("Receiving topic request:" + request);
 
         int reqid = request.getReqid();
@@ -84,15 +72,12 @@ public class DidaMeetingsMainServiceImpl extends DidaMeetingsMainServiceGrpc.Did
         int topic = request.getTopicid();
         int paxosEntry = request.getPaxosentry();
 
-        // for debug purposes
         System.out.println("reqid " + reqid + " meetingid " + mid);
 
         DidaMeetingsCommand command = new DidaMeetingsCommand(DidaMeetingsAction.TOPIC, mid, pid, topic);
 
-        // for debug purposes
-        //System.out.println("Adding topic request with reqid " + reqid + " to pending");
-
         RequestRecord request_record = new RequestRecord(reqid, command);
+        // Waits for the dependency to be executed
         while (this.server_state.main_loop.getLastProcessed() < paxosEntry) { 
             try {
                 System.out.println("Waiting for paxosEntry " + paxosEntry + " current " + this.server_state.main_loop.getLastProcessed());
@@ -105,7 +90,6 @@ public class DidaMeetingsMainServiceImpl extends DidaMeetingsMainServiceGrpc.Did
         this.server_state.main_loop.processTopic(request_record);
         boolean result = request_record.waitForResponse();
 
-        // for debug purposes
         System.out.println("Result is ready for lock request with reqid " + reqid);
 
         DidaMeetingsMain.TopicReply response = DidaMeetingsMain.TopicReply.newBuilder().setReqid(reqid).setResult(result).build();
@@ -116,26 +100,20 @@ public class DidaMeetingsMainServiceImpl extends DidaMeetingsMainServiceGrpc.Did
 
     @Override
     public void close(DidaMeetingsMain.CloseRequest request, StreamObserver<DidaMeetingsMain.CloseReply> responseObserver) {
-        // for debug purposes
         System.out.println("Receiving close request:" + request);
 
         int reqid = request.getReqid();
         int mid = request.getMeetingid();
 
-        // for debug purposes
         System.out.println("reqid " + reqid + " meetingid " + mid);
 
         DidaMeetingsCommand command = new DidaMeetingsCommand(DidaMeetingsAction.CLOSE, mid);
 
-        // for debug purposes
-        //System.out.println("Adding close request with reqid " + reqid + " to pending");
-
         RequestRecord request_record = new RequestRecord(reqid, command);
         this.server_state.req_history.addToPending(reqid, request_record);
-        this.server_state.main_loop.wakeup(0);
+        this.server_state.main_loop.wakeup();
         boolean result = request_record.waitForResponse();
 
-        // for debug purposes
         System.out.println("Result is ready for close request with reqid " + reqid);
 
         DidaMeetingsMain.CloseReply response = DidaMeetingsMain.CloseReply.newBuilder().setReqid(reqid).setResult(result).build();
@@ -146,25 +124,19 @@ public class DidaMeetingsMainServiceImpl extends DidaMeetingsMainServiceGrpc.Did
 
     @Override
     public void dump(DidaMeetingsMain.DumpRequest request, StreamObserver<DidaMeetingsMain.DumpReply> responseObserver) {
-        // for debug purposes
         System.out.println("Receiving dump request:" + request);
 
         int reqid = request.getReqid();
 
-        // for debug purposes
         System.out.println("reqid " + reqid);
 
         DidaMeetingsCommand command = new DidaMeetingsCommand(DidaMeetingsAction.DUMP);
 
-        // for debug purposes
-        //System.out.println("Adding dump request with reqid " + reqid + " to pending");
-
         RequestRecord request_record = new RequestRecord(reqid, command);
         this.server_state.req_history.addToPending(reqid, request_record);
-        this.server_state.main_loop.wakeup(0);
+        this.server_state.main_loop.wakeup();
         boolean result = request_record.waitForResponse();
 
-        // for debug purposes
         System.out.println("Result is ready for dump request with reqid " + reqid);
 
         DidaMeetingsMain.DumpReply response = DidaMeetingsMain.DumpReply.newBuilder().setReqid(reqid).setResult(result).build();

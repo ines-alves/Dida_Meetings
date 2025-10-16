@@ -31,7 +31,7 @@ public class PhaseTwoResponseProcessor extends GenericResponseProcessor<DidaMeet
     public synchronized boolean onNext(ArrayList<DidaMeetingsPaxos.PhaseTwoReply> all_responses, DidaMeetingsPaxos.PhaseTwoReply last_response) {
         this.responses++;
         if (last_response.getAccepted() == false) {
-            System.out.println(" --- PHASE TWO REJECTED --- ");//FIXME this is never hapening
+            System.out.println(" --- PHASE TWO REJECTED --- ");
             this.accepted = false;
             if (last_response.getMaxballot() > this.maxballot) {
                 this.maxballot = last_response.getMaxballot();
@@ -39,6 +39,7 @@ public class PhaseTwoResponseProcessor extends GenericResponseProcessor<DidaMeet
             listener.onPhaseTwoAborted(this.maxballot,last_response.getInstance());
             return true;
         } else if (responses >= quorum) {
+            // Useful because the leader needs to wait after long phase 1 for all issued phase 2 to finish
             listener.onPhaseTwoFinish();
             return true;
         }else {
