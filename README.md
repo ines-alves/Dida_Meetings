@@ -1,121 +1,127 @@
-# DAD2526
+# DidaMeetings
 
-DAD 25-26 Project
+A fault-tolerant distributed meeting management system built as part of the Design of Distributed Applications (DAD) course at IST Lisbon. The system replicates state across a cluster of servers using a full Multi-Paxos consensus implementation, guaranteeing consistency even under replica crashes or network delays, while supporting live reconfiguration of the acceptor set via Vertical Paxos.
 
-This repository holds the base code required to implement the project. Students are free to improve on the following
-code.
-Students should create a copy of this repository by clicking on `Use This Template` on the project GitHub page.
+## Tech Stack
 
-# ⚠️ **WARNING:** ⚠️
+**Language & Build**
+- Java 22
+- Maven 3.8.4
 
-Students must **NOT** develop their solution on a Fork of the repository.
-Forks are public and your code **WILL** be visible to other students.
+**Communication**
+- gRPC (io.grpc)
+- Protocol Buffers 3.12 (protoc)
 
-It falls onto the students to **NOT DEVELOP ON A FORK THE PROJECT**
+## Features
 
-# Requirements
+- Create, manage, and close meetings across a replicated cluster of servers
+- Add participants to meetings; meetings auto-close once the maximum participant count is reached
+- Assign discussion topics to participants, with causal ordering enforced relative to the `add` that enrolled them
+- Dump the full server state (open and closed meetings, participants, topics) from any client
+- Elect a new Paxos leader at runtime by issuing a ballot change from the console
+- Switch between two cluster configurations (Schedule A: 3 nodes, Schedule B: 6 nodes) via Vertical Paxos reconfiguration
+- Debug replicas remotely: freeze, unfreeze, crash, or inject artificial message delays through the console
 
-The project requires the following packages:
+## Architecture / How It Works
+
+Each server process exposes three gRPC services:
+
+- **MainService** — the client-facing API (`open`, `add`, `topic`, `close`, `dump`). Incoming requests are queued in a `RequestHistory` (pending → in-process → processed) and handed to the `MainLoop` worker thread.
+- **PaxosService** — the inter-replica consensus layer (`longPhaseone`, `phasetwo`, `learn`). Phase 2 acceptors notify learners in a forked gRPC context so the accept response is not blocked.
+- **MasterService** — the admin control plane (`newballot`, `setdebug`, `activation`). Used by the console to drive leader elections and inject debug modes.
+
+**Consensus flow.** The `MainLoop` worker runs on the current leader. On receiving a new ballot, it executes a "long" Phase 1 — a single prepare message that returns the entire Paxos log from the last committed entry forward, rather than issuing one prepare per slot. After collecting a quorum of promises, it replays any previously accepted values (picking the highest-ballot value per slot, per Paxos safety), then opens an infinite Phase 2 loop that proposes new client requests into successive log slots. When a quorum of acceptors acknowledges Phase 2, they each notify all learners; a learner marks an entry decided once it has seen quorum accepts and executes the command.
+
+**Causal ordering for `topic`.** When a client calls `add`, the server returns the Paxos log index at which that `add` was committed. The client includes this index in the subsequent `topic` call. Each server blocks processing the topic until its own log has reached at least that index, ensuring the participant exists before assigning them a topic.
+
+**Vertical Paxos.** The `ConfigurationScheduler` maps ballot numbers to distinct sets of acceptors, quorum sizes, and leaders. Schedule A uses three replicas (IDs 0–2) with a quorum of 2. Schedule B uses six replicas (IDs 0–5): ballots 0–1 use acceptors {0,1,2} with quorum 2; ballot 2 and above use acceptors {1,2,3,4,5} with quorum 3. The console orchestrates the transition by sending a new ballot, waiting for the leader to complete Phase 1 over the old configuration, and only activating the new ballot once the leader confirms it finished recovering the log.
+
+## Getting Started
+
+### Requirements
 
 - Java 22
 - Maven 3.8.4
 - Protoc 3.12
 
-## Environment
+### Environment
 
-The project includes a template `setup_env.sh` which students may use as basis to download all necessary packages for
-the project execution.
-The current script was designed for Linux/Ubuntu distributions on an Intel x86 environments.
-Students may extend this script for their target distribution/CPU architecture.
+The project includes a template `setup_env.sh` which you may use as a basis to download all necessary packages. It targets Linux/Ubuntu on Intel x86. Extend it for your distribution/architecture as needed. Once run, activate the environment with:
 
-If so, it will keep all required packages in `INSTALL_DIR`, which can be activated by running
-`source INSTALL_DIR/env.sh`.
+```bash
+source INSTALL_DIR/env.sh
+```
 
-# Compiling
+### Architecture-specific contract pom
 
-To compile the project, students must run the command
-`mvn clean install` in the root directory
+The `contract` module requires a different `pom.xml` depending on CPU architecture:
 
-## ⚠️ ️**WARNING - Compilation Environment** ⚠️
+- ARM/M4 macOS: copy `arm-pom.xml` → `contract/pom.xml`
+- Intel/Linux: copy `intel-pom.xml` → `contract/pom.xml`
 
-The project requires different `pom.xml` for the *contract* module depending on the CPU architecture/OS distribution.
-The project currently has two pre-pepared poms:
+### Compiling
 
-- One for **ARM/M4 Mac-OS** based systems, named `arm-pom.xml`;
-- One for **Intel/Linux** based systems, named `intel-pom.xml`;
+```bash
+mvn clean install
+```
 
-Before the first compilation, copy your required contract pom and rename it to `pom.xml`.
+Run this from the root directory.
 
-# Deployment
+## Usage
 
-Current implementation assumes that all modules run on the same physical machine and requires 5 active servers.
+### 1. Start the server replicas
 
-The project is composed of three main components:
+Run each of the following in a separate terminal (from the `server` directory). This example starts a 3-replica cluster using Schedule A on base port 8080, with a maximum of 5 participants per meeting:
 
-- Servers
-- App (Clients)
-- Console
+```bash
+mvn exec:java -Dexec.args="8080 0 A 5"
+mvn exec:java -Dexec.args="8080 1 A 5"
+mvn exec:java -Dexec.args="8080 2 A 5"
+```
 
-## Servers
+Each replica binds to `base_port + id` (8080, 8081, 8082).
 
-The servers run the base implementation. They are executed running the following command in the *server* directory:
+### 2. Start a client
 
-`mvn exec:java -Dexec.args="{port} {id} {scheduler} {max}"`
+From the `app` directory:
 
-Where you must fill in the following arguments:
+```bash
+mvn exec:java -Dexec.args="1 localhost 8080 A"
+```
 
-- **{port}**: Base port of all servers. **All servers should use the same port**. The Server binded port will be  *
-  *{port} + {id}**.
-- **{id}**: Sequential id of the server. Current implementation requires servers to be ID'ed starting from *0* to *N-1*
-  servers.
-- **{scheduler}**: The scheduler used for reconfiguration (use 'A' to start)
-- **{max}**: The maximum number of participants in a meeting
+The client opens an interactive prompt. Example session:
 
-## Client
+```
+app> open 42
+Meeting opened with id 42
 
-A client that executes transactions. It is executed by running the following command in the *app* directory:
+app> add 42 7
+Added participant with id 7 to meeting with id 42
 
-`mvn exec:java -Dexec.args="{id} {host} {port} {scheduler}"`
+app> topic 42 7 100
+Meeting with id 42 participant with id 7 and topic 100
 
-Where you must fill in the following arguments:
+app> close 42
+Meeting closed with id 42
 
-- **{id}**: Sequential id of the client. Current implementation requires clients to be ID'ed starting from *1*.
-- **{host}**: The host for all servers. (just use "localhost")
-- **{port}**: Base port of all servers.
-- **{scheduler}**: The scheduler used (use 'A' to start)
+app> show
+```
 
-The client module opens a terminal from where students may issue commands. The following commands are available:
+`loop` runs an automated workload of random open/add/topic/close operations.
 
-- `help` - Shows the full command list;
-- `exit` - Gracefully finishes the client.
+### 3. Start the console
 
-## Console
+From the `console` directory:
 
-The console client servers as a front-end to issue configuration settings to servers. It is executed by running the
-following command in the *consoleclient* directory:
+```bash
+mvn exec:java -Dexec.args="localhost 8080 A"
+```
 
-`mvn exec:java -Dexec.args="{host} {port} {scheduler}"`
+Example commands:
 
-here you must fill in the following arguments:
-
-- **{host}**: The host for all servers. (just use "localhost")
-- **{port}**: Base port of all servers.
-- **{scheduler}**: The scheduler used (use 'A' to start)
-
-The console client opens a terminal from where students may issue configuration changes to servers. The following
-commands are available:
-
-- `help` - Shows the full command list;
-- `ballot ballot_number server` - Instructs a server to start ballot with number 'ballot_number';
-- `debug mode replica_id` - Activates debug on a given replica;
-- `exit` - Gracefully finishes the console.
-
-## Protobuffs and Utils
-
-To support these modules, the project has additional directories:
-
-- *contract*, holding the required `.proto` files;
-- *util*, holding the general classes to collect RPC responses
-- *core*, holding the general classes that manage meetings
-- *configs*, holding the general classes that manage configurations
-  
+```
+console> ballot 1 1        # ask replica 1 to start ballot 1 (makes it leader)
+console> debug freeze 2    # freeze replica 2's main loop
+console> debug crash 0     # crash replica 0
+console> debug slow-mode-on 1   # add 3-second delay to replica 1's Paxos messages
+```
